@@ -20,8 +20,9 @@ public class ConfigurationDBHelper extends SQLiteOpenHelper {
     @Override
     public void onCreate(SQLiteDatabase db) {
         db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_NAME +
-                "(name TEXT PRIMARY KEY, triggerType INTEGER, triggerInterval INTEGER, filterInterval INTEGER," +
-                " silenceCheckTimer INTEGER, receivingAntennaNum INTEGER, totalTriggerCount INTEGER, targetPhoneNum TEXT)");
+                "(name TEXT PRIMARY KEY, triggerType INTEGER, triggerSMSType INTEGER,insideSMSType INTEGER," +
+                "triggerInterval INTEGER, filterInterval INTEGER,silenceCheckTimer INTEGER, " +
+                "receivingAntennaNum INTEGER, totalTriggerCount INTEGER, targetPhoneNum TEXT, smsCenter TEXT)");
     }
 
     @Override

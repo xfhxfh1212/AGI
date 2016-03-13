@@ -63,10 +63,21 @@
             android:name=".ui.OrientationFindingActivity"
             android:label="@string/title_main_menu_orientation"
             android:launchMode="singleTask" />
-        <activity android:name=".ui.ConfigurationActivity"
+        <activity
+            android:name=".ui.InterferenceActivity"
+            android:label="@string/title_main_menu_interference_detection"
+            android:launchMode="singleTask" />
+        <activity
+            android:name=".ui.ConfigurationActivity"
             android:label="@string/title_main_menu_configuration"
-            android:launchMode="singleTask"/>
+            android:launchMode="singleTask" />
+        <activity
+            android:name=".ui.LocalInfoActivity"
+            android:label="title_main_menu_cellPhone_info"
+            android:launchMode="singleTask" />
+
         <service android:name=".external.service.MonitorService" />
+
     </application>
 
 </manifest>

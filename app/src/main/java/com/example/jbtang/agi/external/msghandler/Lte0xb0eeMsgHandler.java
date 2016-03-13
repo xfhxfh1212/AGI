@@ -25,10 +25,10 @@ public class Lte0xb0eeMsgHandler implements MessageHandler {
                 .append(padLeft(String.format("%X", msg.getmTmsi0()), "0", 2))
                 .toString();
 
-        Log.d("STMSI", MonitorApplication.stmsi);
+        Log.e("STMSI", MonitorApplication.stmsi);
         //send broad
         MonitorApplication.data_ServCell.setTime(msg.getTime());
-        MonitorApplication.sendBroad(MonitorApplication.BROAD_TO_ORIENTATION_ACTIVITY, MonitorApplication.STMSI, "msg", MonitorApplication.stmsi);
+        MonitorApplication.sendBroad(MonitorApplication.BROAD_TO_LOCAL_INFO_ACTIVITY, MonitorApplication.STMSI, "msg", MonitorApplication.stmsi);
 
     }
 

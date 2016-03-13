@@ -6,7 +6,9 @@ import android.os.Message;
 import android.support.annotation.NonNull;
 import android.util.Log;
 import android.util.Pair;
+import android.widget.CheckBox;
 
+import com.example.jbtang.agi.R;
 import com.example.jbtang.agi.core.Global;
 import com.example.jbtang.agi.core.Status;
 import com.example.jbtang.agi.core.type.U32;
@@ -17,8 +19,10 @@ import com.example.jbtang.agi.messages.MessageDispatcher;
 import com.example.jbtang.agi.messages.ag2pc.MsgL2P_AG_CELL_CAPTURE_IND;
 import com.example.jbtang.agi.messages.ag2pc.MsgL2P_AG_UE_CAPTURE_IND;
 import com.example.jbtang.agi.messages.base.MsgTypes;
+import com.example.jbtang.agi.trigger.PhoneTrigger;
 import com.example.jbtang.agi.trigger.SMSTrigger;
 import com.example.jbtang.agi.trigger.Trigger;
+import com.example.jbtang.agi.ui.FindSTMSIActivity;
 
 import java.lang.ref.WeakReference;
 import java.text.SimpleDateFormat;
@@ -45,6 +49,7 @@ public class FindSTMSI {
     private myHandler handler;
     private Trigger trigger;
 
+    private CheckBox filterCheckBox;
     public List<CountSortedInfo> getCountSortedInfoList() {
         countSortedInfoList.clear();
         CountSortedInfo info;
@@ -61,6 +66,7 @@ public class FindSTMSI {
         sTMSI2Count = new HashMap<>();
         countSortedInfoList = new ArrayList<>();
         handler = new myHandler(this);
+        //trigger = Global.Configuration.type == Status.TriggerType.SMS? SMSTrigger.getInstance(): PhoneTrigger.getInstance();
         trigger = SMSTrigger.getInstance();
     }
 
@@ -91,10 +97,17 @@ public class FindSTMSI {
     }
 
     public void start(Activity activity) {
+        //DeviceManager.getInstance().getDevices().get(0).setWorkingStatus(Status.DeviceWorkingStatus.ABNORMAL);
+
         MessageDispatcher.getInstance().RegisterHandler(handler);
         sTMSI2Count.clear();
         countSortedInfoList.clear();
-        trigger.start(activity, Status.Service.FINDSTMIS);
+        if(activity.getLocalClassName().equals("FindSTMSIActivity")) {
+            filterCheckBox = (CheckBox) activity.findViewById(R.id.find_stmsi_filter_checkbox);
+            trigger.start(activity, Status.Service.FINDSTMIS);
+        }else {
+            trigger.start(activity, Status.Service.INTERFERENCE);
+        }
     }
 
     public void stop() {
@@ -102,13 +115,14 @@ public class FindSTMSI {
     }
 
     private void resolveCellCaptureMsg(Global.GlobalMsg globalMsg) {
+
         MsgL2P_AG_CELL_CAPTURE_IND msg = new MsgL2P_AG_CELL_CAPTURE_IND(globalMsg.getBytes());
         Status.DeviceWorkingStatus status = msg.getMu16Rsrp() == 0 ? Status.DeviceWorkingStatus.ABNORMAL : Status.DeviceWorkingStatus.NORMAL;
         Float rsrp = msg.getMu16Rsrp()*1.0F;
         DeviceManager.getInstance().getDevice(globalMsg.getDeviceName()).setWorkingStatus(status);
         DeviceManager.getInstance().getDevice(globalMsg.getDeviceName()).getCellInfo().rsrp = rsrp;
         Log.e(TAG, String.format("==========status : %s, rsrp : %f ============", status.name(), rsrp));
-        Log.e("cell_capture","mu16PCI:"+msg.getMu16PCI()+" mu16EARFCN:"+msg.getMu16EARFCN()+" mu16TAC:"+msg.getMu16TAC()+" mu16Rsrp:"+msg.getMu16Rsrp()+" mu16Rsrq:"+msg.getMu16Rsrq());
+        Log.e("cell_capture", "mu16PCI:" + msg.getMu16PCI() + " mu16EARFCN:" + msg.getMu16EARFCN() + " mu16TAC:" + msg.getMu16TAC() + " mu16Rsrp:" + msg.getMu16Rsrp() + " mu16Rsrq:" + msg.getMu16Rsrq());
     }
 
     private void resolveUECaptureMsg(Global.GlobalMsg globalMsg) {
@@ -135,6 +149,8 @@ public class FindSTMSI {
             return;
         }
         Log.d(TAG, String.format("---------Find STMSI :  %s -----------", stmsi));
+        if(filterCheckBox != null && filterCheckBox.isChecked() && Global.filterStmsiMap.containsKey(stmsi))
+            return;
         int count = sTMSI2Count.containsKey(stmsi) ? Integer.valueOf(sTMSI2Count.get(stmsi).count) : 0;
         CountSortedInfo info = new CountSortedInfo();
 

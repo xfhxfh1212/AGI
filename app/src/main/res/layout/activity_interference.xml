@@ -6,66 +6,67 @@
 
 
     <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-        android:id="@+id/orientation_find_layout_target"
         android:layout_width="match_parent"
+        android:id="@+id/interference_layout_info"
         android:layout_height="30dp"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="30dp"
+            android:gravity="center_vertical"
+            android:text="@string/page_interference_current_times"
+            android:textSize="15sp" />
+
+        <TextView
+            android:id="@+id/interference_triggered_count"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:gravity="center_vertical"
+            android:textSize="15sp" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="30dp"
+            android:gravity="center_vertical"
+            android:text="@string/page_interference_current_fail_times"
+            android:textSize="15sp" />
+
+        <TextView
+            android:id="@+id/interference_triggered_fail_count"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:gravity="center_vertical"
+            android:textSize="15sp" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="30dp"
+            android:gravity="center_vertical"
+            android:text="@string/page_interference_current_pci"
+            android:textSize="15sp" />
+
+        <TextView
+            android:id="@+id/interference_current_pci"
+            android:layout_width="50dp"
+            android:layout_height="30dp"
+            android:gravity="center_vertical"
+            android:textSize="15sp" />
+    </LinearLayout>
+    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        android:layout_width="match_parent"
+        android:id="@+id/interference_layout_target_stmsi"
+        android:layout_below="@+id/interference_layout_info"
+        android:layout_height="wrap_content"
         android:gravity="center"
         android:orientation="horizontal">
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="30dp"
             android:gravity="center_vertical"
-            android:text="@string/page_find_stmsi_current_times"
-            android:textSize="15sp" />
-
-        <TextView
-            android:id="@+id/orientation_triggered_count"
-            android:layout_width="30dp"
-            android:layout_height="30dp"
-            android:gravity="center_vertical"
+            android:text="@string/page_interference_target"
             android:textSize="15sp" />
         <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="30dp"
-            android:gravity="center_vertical"
-            android:text="@string/page_find_stmsi_current_fail_times"
-            android:textSize="15sp" />
-
-        <TextView
-            android:id="@+id/orientation_triggered_fail_count"
-            android:layout_width="30dp"
-            android:layout_height="30dp"
-            android:gravity="center_vertical"
-            android:textSize="15sp" />
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="30dp"
-            android:gravity="center_vertical"
-            android:text="@string/page_find_stmsi_current_pci"
-            android:textSize="15sp" />
-
-        <TextView
-            android:id="@+id/orientation_current_pci"
-            android:layout_width="50dp"
-            android:layout_height="30dp"
-            android:gravity="center_vertical"
-            android:textSize="15sp" />
-
-    </LinearLayout>
-    <LinearLayout
-        android:id="@+id/orientation_find_layout_target_info"
-        android:layout_width="match_parent"
-        android:layout_height="30dp"
-        android:gravity="center"
-        android:layout_below="@+id/orientation_find_layout_target">
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="30dp"
-            android:gravity="center_vertical"
-            android:text="@string/page_find_stmsi_target"
-            android:textSize="15sp" />
-        <TextView
-            android:id="@+id/orientation_target_phone_num"
+            android:id="@+id/interference_target_phone_num"
             android:layout_width="100dp"
             android:layout_height="30dp"
             android:gravity="center_vertical"
@@ -74,106 +75,44 @@
             android:layout_width="wrap_content"
             android:layout_height="30dp"
             android:gravity="center_vertical"
-            android:text="@string/page_orientation_find_target_stmsi"
+            android:text="@string/page_interference_filter_count"
             android:textSize="15sp" />
-        <TextView
-            android:id="@+id/orientation_find_target_stmsi"
-            android:layout_width="110dp"
-            android:layout_height="30dp"
+        <EditText
+            android:id="@+id/interference_filter_count"
+            android:layout_width="50dp"
+            android:layout_height="wrap_content"
             android:gravity="center"
             android:textSize="15sp" />
     </LinearLayout>
-
     <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-        android:id="@+id/orientation_find_layout_control"
-        android:layout_below="@+id/orientation_find_layout_target_info"
+        android:id="@+id/interference_layout_control"
+        android:layout_below="@+id/interference_layout_target_stmsi"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center"
         android:orientation="horizontal">
 
         <Button
-            android:id="@+id/orientation_find_start"
+            android:id="@+id/interference_start_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/page_orientation_find_start"
+            android:text="@string/page_interference_start"
             android:textSize="15sp" />
 
         <Button
-            android:id="@+id/orientation_find_stop"
+            android:id="@+id/interference_stop_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/page_orientation_find_stop"
+            android:text="@string/page_interference_stop"
             android:textSize="15sp" />
 
     </LinearLayout>
-
     <android.support.percent.PercentRelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto"
-        android:id="@+id/orientation_find_layout_dividen_list"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_below="@+id/orientation_find_layout_control"
-        android:layout_gravity="center">
-
-        <ImageView
-            android:layout_width="fill_parent"
-            android:layout_height="1dp"
-            android:background="#000000" />
-
-    </android.support.percent.PercentRelativeLayout>
-
-    <android.support.percent.PercentRelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:app="http://schemas.android.com/apk/res-auto"
-        android:id="@+id/orientation_find_layout_result_list_title"
-        android:layout_width="match_parent"
-        android:layout_height="20dp"
-        android:layout_below="@+id/orientation_find_layout_dividen_list">
-
-        <TextView
-            android:id="@+id/orientation_find_result_list_title_pucch"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:gravity="center"
-            android:text="@string/page_orientation_find_result_list_title_pucch"
-            app:layout_heightPercent="100%"
-            app:layout_widthPercent="30%" />
-
-        <TextView
-            android:id="@+id/orientation_find_result_list_title_pusch"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_toRightOf="@+id/orientation_find_result_list_title_pucch"
-            android:gravity="center"
-            android:text="@string/page_orientation_find_result_list_title_pusch"
-            app:layout_heightPercent="100%"
-            app:layout_widthPercent="30%" />
-
-        <TextView
-            android:id="@+id/orientation_find_result_list_title_time"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_toRightOf="@+id/orientation_find_result_list_title_pusch"
-            android:gravity="center"
-            android:text="@string/page_orientation_find_result_list_title_time"
-            app:layout_heightPercent="100%"
-            app:layout_widthPercent="40%" />
-
-    </android.support.percent.PercentRelativeLayout>
-
-
-    <ListView
-        android:id="@+id/orientation_find_result_list"
-        android:layout_width="fill_parent"
-        android:layout_height="180dp"
-        android:layout_below="@+id/orientation_find_layout_result_list_title" />
-
-    <android.support.percent.PercentRelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:app="http://schemas.android.com/apk/res-auto"
-        android:id="@+id/orientation_find_layout_dividen_graph"
+        android:id="@+id/interference_layout_sort_by_count"
+        android:layout_below="@+id/interference_layout_control"
         android:layout_width="match_parent"
         android:layout_height="25dp"
-        android:layout_below="@+id/orientation_find_result_list"
         android:layout_gravity="center">
 
         <ImageView
@@ -181,22 +120,91 @@
             android:layout_height="1dp"
             android:background="#000000" />
 
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:gravity="center"
+            android:text="@string/page_interference_sort_by_count"
+            app:layout_heightPercent="100%" />
     </android.support.percent.PercentRelativeLayout>
 
-    <LinearLayout
-        android:id="@+id/orientation_find_layout_result_graph"
+    <android.support.percent.PercentRelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        android:layout_width="match_parent"
+        android:id="@+id/interference_layout_count_list_title"
+        android:layout_below="@+id/interference_layout_sort_by_count"
+        android:layout_height="20dp">
+
+        <TextView
+            android:id="@+id/interference_count_stmsi"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:gravity="center"
+            android:text="@string/page_interference_title_stmsi"
+            app:layout_heightPercent="100%"
+            app:layout_widthPercent="25%" />
+
+        <TextView
+            android:id="@+id/interference_count_count"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_toRightOf="@+id/interference_count_stmsi"
+            android:gravity="center"
+            android:text="@string/page_interference_title_count"
+            app:layout_heightPercent="100%"
+            app:layout_widthPercent="15%" />
+        <TextView
+            android:id="@+id/interference_time_time"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_toRightOf="@+id/interference_count_count"
+            android:gravity="center"
+            android:text="@string/page_interference_title_time"
+            app:layout_heightPercent="100%"
+            app:layout_widthPercent="25%" />
+
+        <TextView
+            android:id="@+id/interference_time_pci"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_toRightOf="@+id/interference_time_time"
+            android:gravity="center"
+            android:text="@string/page_interference_title_pci"
+            app:layout_heightPercent="100%"
+            app:layout_widthPercent="15%" />
+
+        <TextView
+            android:id="@+id/interference_time_board"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_toRightOf="@+id/interference_time_pci"
+            android:gravity="center"
+            android:text="@string/page_interference_title_earfcn"
+            app:layout_heightPercent="100%"
+            app:layout_widthPercent="20%" />
+    </android.support.percent.PercentRelativeLayout>
+    <ImageView
+        android:id="@+id/interference_layout_devide_line"
+        android:layout_width="match_parent"
+        android:layout_height="1dip"
+        android:background="#000000"
+        android:layout_below="@+id/interference_layout_count_list_title"/>
+    <ListView
+        android:layout_below="@+id/interference_layout_devide_line"
+        android:layout_above="@+id/interference_cell_status_bar"
+        android:id="@+id/interference_count_listView"
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
-        android:layout_below="@+id/orientation_find_layout_dividen_graph"
-        android:layout_above="@+id/orientation_cell_status_bar"
-        android:orientation="horizontal" />
+        android:divider="#000000"
+        android:dividerHeight="1dip"/>
+
     <LinearLayout
-        android:id="@+id/orientation_cell_status_bar"
+        android:id="@+id/interference_cell_status_bar"
         android:layout_width="match_parent"
         android:layout_height="25dp"
         android:orientation="horizontal"
         android:gravity="center"
-        android:background="#FFBFBFBF"
+        android:background="#BFBFBF"
         android:layout_alignParentBottom="true">
         <TextView
             android:layout_width="wrap_content"
@@ -205,7 +213,7 @@
             android:text="@string/page_status_bar_device_status"
             android:textSize="17sp"/>
         <TextView
-            android:id="@+id/orientation_device_background"
+            android:id="@+id/interference_device_background"
             android:layout_width="15dp"
             android:layout_height="20dp"
             />
@@ -217,7 +225,7 @@
             android:text="@string/page_status_bar_device_confirm"
             android:textSize="17sp"/>
         <TextView
-            android:id="@+id/orientation_confirm_background"
+            android:id="@+id/interference_confirm_background"
             android:layout_width="15dp"
             android:layout_height="20dp"
             />
@@ -229,7 +237,7 @@
             android:text="@string/page_status_bar_rsrp"
             android:textSize="17sp"/>
         <TextView
-            android:id="@+id/orientation_rsrp"
+            android:id="@+id/interference_rsrp"
             android:layout_width="40dp"
             android:layout_height="20dp"
             />
@@ -241,10 +249,11 @@
             android:textSize="17sp"
             android:text="@string/page_status_bar_pci"/>
         <TextView
-            android:id="@+id/orientation_pci_num"
+            android:id="@+id/interference_pci_num"
             android:layout_width="40dp"
             android:layout_height="match_parent"
             android:gravity="center"
             android:textSize="17sp"/>
     </LinearLayout>
+
 </RelativeLayout>

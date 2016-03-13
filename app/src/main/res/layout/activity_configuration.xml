@@ -22,17 +22,17 @@
             android:layout_width="wrap_content"
             android:layout_height="40dp"
             android:gravity="center"
-            android:text="@string/page_system_configure_target"
+            android:text="@string/page_system_configure_SMS_center"
             android:textSize="17sp" />
 
         <EditText
-            android:id="@+id/system_configure_target"
+            android:id="@+id/system_configure_SMS_center"
             android:layout_width="match_parent"
             android:layout_height="40dp"
             android:inputType="number"
-            android:textSize="15sp" />
+            android:textSize="15sp"
+            android:hint="@string/page_system_configure_SMS_center_hint"/>
     </LinearLayout>
-
     <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -92,7 +92,64 @@
         </RadioGroup>
 
     </LinearLayout>
-
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:orientation="horizontal">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:gravity="center"
+            android:text="@string/page_system_configure_trigger_SMS_type"
+            android:textSize="17sp"/>
+        <RadioGroup
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:gravity="center"
+            android:orientation="horizontal">
+            <RadioButton
+                android:id="@+id/system_configure_trigger_sms_inside"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:layout_marginLeft="10dp"
+                android:text="@string/page_system_configure_trigger_SMS_inside"/>
+            <RadioButton
+                android:id="@+id/system_configure_trigger_sms_outside"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:layout_marginLeft="10dp"
+                android:text="@string/page_system_configure_trigger_SMS_outside"/>
+        </RadioGroup>
+    </LinearLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:orientation="horizontal">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:gravity="center"
+            android:text="@string/page_system_configure_trigger_SMS_inside_type"
+            android:textSize="17sp"/>
+        <RadioGroup
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:gravity="center"
+            android:orientation="horizontal">
+            <RadioButton
+                android:id="@+id/system_configure_trigger_sms_inside_normal"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:layout_marginLeft="10dp"
+                android:text="@string/page_system_configure_trigger_SMS_inside_normal"/>
+            <RadioButton
+                android:id="@+id/system_configure_trigger_sms_inside_silent"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:layout_marginLeft="10dp"
+                android:text="@string/page_system_configure_trigger_SMS_inside_silent"/>
+        </RadioGroup>
+    </LinearLayout>
     <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

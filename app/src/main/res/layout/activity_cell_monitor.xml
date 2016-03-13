@@ -129,7 +129,7 @@
             app:layout_widthPercent="15%" />
 
         <TextView
-            android:id="@+id/cell_monitor_list_sinr"
+            android:id="@+id/cell_monitor_list_ecgi"
             android:layout_width="0dp"
             android:layout_height="0dp"
             android:layout_toRightOf="@+id/cell_monitor_list_tai"
@@ -139,10 +139,10 @@
             app:layout_widthPercent="20%" />
 
         <TextView
-            android:id="@+id/cell_monitor_list_rsrp"
+            android:id="@+id/cell_monitor_list_sinr"
             android:layout_width="0dp"
             android:layout_height="0dp"
-            android:layout_toRightOf="@+id/cell_monitor_list_sinr"
+            android:layout_toRightOf="@+id/cell_monitor_list_ecgi"
             android:gravity="center"
             android:text="@string/page_test_cell_monitor_item_sinr"
             app:layout_heightPercent="100%"
@@ -152,7 +152,7 @@
             android:id="@+id/cell_monitor_list_choose"
             android:layout_width="0dp"
             android:layout_height="0dp"
-            android:layout_toRightOf="@+id/cell_monitor_list_rsrp"
+            android:layout_toRightOf="@+id/cell_monitor_list_sinr"
             android:gravity="center"
             android:text="@string/page_test_cell_monitor_choose"
             app:layout_heightPercent="100%"
@@ -251,7 +251,7 @@
         <TextView
             android:layout_width="100dp"
             android:layout_height="match_parent"
-            android:text="设备状态:"
+            android:text="@string/page_status_bar_device_status"
             android:textSize="17sp"
             android:gravity="center"/>
         <TextView
@@ -259,13 +259,12 @@
             android:layout_width="100dp"
             android:layout_height="match_parent"
             android:gravity="center_vertical"
-            android:textSize="17sp"
-            android:text="未就绪"/>
+            android:textSize="17sp"/>
         <TextView
             android:layout_width="60dp"
             android:layout_height="match_parent"
             android:gravity="center"
-            android:text="AGI 1"
+            android:text="@string/page_status_bar_agi_one"
             android:textSize="17sp"/>
         <TextView
             android:id="@+id/cell_monitor_device_background_one"
@@ -276,7 +275,7 @@
             android:layout_width="60dp"
             android:layout_height="match_parent"
             android:gravity="center"
-            android:text="AGI 2"
+            android:text="@string/page_status_bar_agi_two"
 
             android:textSize="17sp"/>
         <TextView

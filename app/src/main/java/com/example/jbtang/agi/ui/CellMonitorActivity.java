@@ -1,5 +1,6 @@
 package com.example.jbtang.agi.ui;
 
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -7,6 +8,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.graphics.Color;
 import android.os.IBinder;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
@@ -18,6 +20,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.BaseAdapter;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
@@ -32,6 +35,7 @@ import com.example.jbtang.agi.core.Status;
 import com.example.jbtang.agi.device.DeviceManager;
 import com.example.jbtang.agi.device.MonitorDevice;
 import com.example.jbtang.agi.external.MonitorApplication;
+import com.example.jbtang.agi.external.MonitorHelper;
 import com.example.jbtang.agi.external.service.MonitorService;
 import com.example.jbtang.agi.service.CellMonitor;
 
@@ -53,7 +57,7 @@ import io.fmaster.LTEPwrInfoMessage;
 import io.fmaster.LTEServCellMessage;
 
 public class CellMonitorActivity extends AppCompatActivity {
-
+    private Intent startIntent;
     private static final String TAG = "CellMonitorActivity";
     private EditText manualEARFCN;
     private EditText manualPCI;
@@ -71,6 +75,7 @@ public class CellMonitorActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN);
         setContentView(R.layout.activity_cell_monitor);
 
         initData();
@@ -103,7 +108,7 @@ public class CellMonitorActivity extends AppCompatActivity {
     public void initData() {
         MyApp = (MonitorApplication) getApplication();
         IntentFilter filter = new IntentFilter(MonitorApplication.BROAD_TO_MAIN_ACTIVITY);
-        filter.addAction(MonitorApplication.BROAD_FROM_MAIN_MENU_ACTIVITY);
+        filter.addAction(MonitorApplication.BROAD_FROM_MAIN_MENU_DEVICE);
         registerReceiver(receiver, filter);
 
         manualEARFCN = (EditText) findViewById(R.id.cell_monitor_manual_earfcn);
@@ -149,30 +154,30 @@ public class CellMonitorActivity extends AppCompatActivity {
 
     }
 
-    private MonitorService mBoundService;
-
-    private ServiceConnection connection = new ServiceConnection() {
-
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-
-            mBoundService = null;
-        }
-
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            mBoundService = ((MonitorService.LocalBinder) service).getService();
-            MonitorApplication.MonitorService = mBoundService;
-        }
-    };
+//    private MonitorService mBoundService;
+//
+//    private ServiceConnection connection = new ServiceConnection() {
+//
+//        @Override
+//        public void onServiceDisconnected(ComponentName name) {
+//
+//            mBoundService = null;
+//        }
+//
+//        @Override
+//        public void onServiceConnected(ComponentName name, IBinder service) {
+//            mBoundService = ((MonitorService.LocalBinder) service).getService();
+//            MonitorApplication.MonitorService = mBoundService;
+//        }
+//    };
 
     private void startService() {
         MonitorApplication.IMEI = getIMEI(this);
-        Intent startIntent = new Intent(this, MonitorService.class);
-        startService(startIntent);
+        startIntent = new Intent(this, MonitorService.class);
+        //startService(startIntent);
         //Intent intent=new Intent(this,MonitorService.class);
-        bindService(startIntent, connection, 0);
-
+        //bindService(startIntent, connection, 0);
+        MonitorHelper.startService(this);
         Global.ThreadPool.scheduledThreadPool.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
@@ -191,15 +196,18 @@ public class CellMonitorActivity extends AppCompatActivity {
                     }
                 });
             }
-        }, 1, 2, TimeUnit.SECONDS);
+        }, 1, 1, TimeUnit.SECONDS);
     }
 
     @Override
     public void onDestroy() {
         unregisterReceiver(receiver);
-        unbindService(connection);
+        //unbindService(connection);
+        //stopService(startIntent);
+        MonitorHelper.stopService(this);
         super.onDestroy();
     }
+
 
     public static String getIMEI(Context context) {
         TelephonyManager telephonyManager = (TelephonyManager) context
@@ -218,7 +226,7 @@ public class CellMonitorActivity extends AppCompatActivity {
             if (intent.getAction().equals("")) {
                 return;
             }
-            if (intent.getAction().equals(MonitorApplication.BROAD_FROM_MAIN_MENU_ACTIVITY)) {
+            if (intent.getAction().equals(MonitorApplication.BROAD_FROM_MAIN_MENU_DEVICE)) {
                 refreshStatusBar(intent);
             } else {
                 refreshView(intent);
@@ -227,8 +235,8 @@ public class CellMonitorActivity extends AppCompatActivity {
     }
 
     private void refreshStatusBar(Intent intent) {
-        final int colorOne = intent.getIntExtra("colorOne", 0xFFFF0000);
-        final int colorTwo = intent.getIntExtra("colorTwo", 0xFFFF0000);
+        final int colorOne = intent.getIntExtra("colorOne", Color.RED);
+        final int colorTwo = intent.getIntExtra("colorTwo", Color.RED);
         final String statusText = intent.getStringExtra("statusText");
         runOnUiThread(new Runnable() {
             @Override
@@ -486,6 +494,14 @@ public class CellMonitorActivity extends AppCompatActivity {
 
     private boolean validate(Map<Status.BoardType, List<MonitorDevice>> deviceMap,
                              Map<Status.BoardType, List<CellInfo>> cellInfoMap) {
+        if(cellInfoMap.get(Status.BoardType.FDD).size() == 0 &&cellInfoMap.get(Status.BoardType.TDD).size() == 0){
+            new AlertDialog.Builder(this)
+                    .setTitle("非法配置")
+                    .setMessage("未选择守控小区!")
+                    .setPositiveButton("确定", null)
+                    .show();
+            return false;
+        }
         for (Status.BoardType type : Status.BoardType.values()) {
             if (deviceMap.get(type).size() < cellInfoMap.get(type).size()) {
                 new AlertDialog.Builder(this)

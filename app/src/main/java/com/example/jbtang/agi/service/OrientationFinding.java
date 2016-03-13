@@ -47,7 +47,7 @@ public class OrientationFinding {
     private static OrientationFinding instance = new OrientationFinding();
     public static final int PUCCH = 7;
     public static final int PUSCH = 5;
-    private static final int COUNT_INTERVAL = 2;
+    private static final int COUNT_INTERVAL = 6;
     private static final int RESULT_QUEUE_MAX_LEN = 25;
 
     private myHandler handler;
@@ -173,8 +173,8 @@ public class OrientationFinding {
     }
 
     public void start(Activity activity) {
+        //DeviceManager.getInstance().getDevices().get(0).setWorkingStatus(Status.DeviceWorkingStatus.ABNORMAL);
         MessageDispatcher.getInstance().RegisterHandler(handler);
-
         Log.d(TAG, String.format("================== Orientation find stmsi : %s ====================", Global.TARGET_STMSI));
         Log.d(TAG, MsgSendHelper.convertBytesToString(Global.TARGET_STMSI.getBytes()));
         trigger.start(activity, Status.Service.ORIENTATION);

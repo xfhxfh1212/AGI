@@ -12,6 +12,18 @@
     <string name="page_center_start">开始侧向</string>
     <string name="title_activity_control_center">管理中心</string>
 
+    <!-- main menu -->
+    <string name="title_main_menu">主界面</string>
+    <string name="title_main_menu_cell_monitor">守控小区</string>
+    <string name="title_main_menu_find_STMSI">空码搜索</string>
+    <string name="title_main_menu_orientation">目标侧向</string>
+    <string name="title_main_menu_interference_detection">干扰探测</string>
+    <string name="title_main_menu_configuration">参数配置</string>
+    <string name="title_main_menu_cellPhone_info">本机信息</string>
+    <string name="page_main_menu_target_phone_num">目标号码</string>
+    <string name="page_main_menu_save">保存</string>
+    <string name="page_main_menu_device_connect">连接</string>
+    <string name="page_main_menu_device_disconnect">断开</string>
     <!-- device configure page -->
     <string name="title_activity_device_configuration">设备管理</string>
     <string name="title_device_configuration_show_detail">详细信息</string>
@@ -39,9 +51,17 @@
     <string name="title_activity_system_configuration">系统参数配置</string>
     <string name="menu_system_configuration_save">保存</string>
     <string name="page_system_configure_target">目标号码</string>
-    <string name="page_system_configure_trigger">触发方式</string>
-    <string name="page_system_configure_trigger_SMS">短信</string>
-    <string name="page_system_configure_trigger_phone">电话</string>
+    <string name="page_system_configure_SMS_center">短信中心</string>
+    <string name="page_system_configure_SMS_center_hint">该项不填则使用本机默认短信中心</string>
+    <string name="page_system_configure_trigger">目标触发方式</string>
+    <string name="page_system_configure_trigger_SMS">短信触发</string>
+    <string name="page_system_configure_trigger_phone">电话触发</string>
+    <string name="page_system_configure_trigger_SMS_type">短信触发类型</string>
+    <string name="page_system_configure_trigger_SMS_inside">内部触发</string>
+    <string name="page_system_configure_trigger_SMS_outside">外部触发</string>
+    <string name="page_system_configure_trigger_SMS_inside_type">内部短信类型</string>
+    <string name="page_system_configure_trigger_SMS_inside_normal">普通短信</string>
+    <string name="page_system_configure_trigger_SMS_inside_silent">静默短信</string>
     <string name="page_system_configure_trigger_max">触发总次数（次）</string>
     <string name="page_system_configure_SMS_interval">触发间隔（秒）</string>
     <string name="page_system_configure_filter_seconds">过滤门限（秒）</string>
@@ -64,31 +84,35 @@
     <string name="page_test_cell_monitor_cell_list">守控小区列表</string>
     <string name="page_test_cell_monitor_choose">守控</string>
     <string name="page_test_cell_monitor_board">板卡</string>
-
+    <string name="page_cell_monitor_device_name">"设备名称"</string>
+    <string name="page_cell_monitor_earfcn">"Earfcn"</string>
+    <string name="page_cell_monitor_pci">"PCI"</string>
+    <string name="page_cell_monitor_start_monitor">"开始监控"</string>
 
     <!-- Main activity -->
     <string name="title_main_cell_monitor">小区守控配置</string>
     <string name="title_main_find_STMSI">寻找STMSI</string>
     <string name="title_main_orientation">测向</string>
-    <string name="page_cell_monitor_device_name">"设备名称"</string>
-    <string name="page_cell_monitor_earfcn">"Earfcn"</string>
-    <string name="page_cell_monitor_pci">"PCI"</string>
-    <string name="page_cell_monitor_start_monitor">"开始监控"</string>
+    <!-- Find STMSI -->
     <string name="page_find_stmsi_device_name">"设备名称"</string>
-    <string name="page_find_stmis_start">"开始"</string>
-    <string name="page_find_stmis_stop">"停止"</string>
-    <string name="page_find_stmis_target">目标号码:</string>
-    <string name="page_find_stmis_current_times">已触发次数:</string>
-    <string name="page_find_stmis_sort_by_count">按次数排序</string>
-    <string name="page_find_stmis_title_stmsi">STMSI</string>
-    <string name="page_find_stmis_title_count">次数</string>
-    <string name="page_find_stmis_sort_by_time">按时间排序</string>
-    <string name="page_find_stmis_title_time">时间</string>
-    <string name="page_find_stmis_title_pci">PCI</string>
-    <string name="page_find_stmis_title_board">板卡</string>
-    <string name="page_find_stmis_title_earfcn">EARFCN</string>
+    <string name="page_find_stmsi_filter_stmsi">过滤</string>
+    <string name="page_find_stmsi_start">"开始"</string>
+    <string name="page_find_stmsi_stop">"停止"</string>
+    <string name="page_find_stmsi_target">目标号码:</string>
+    <string name="page_find_stmsi_current_times">触发次数:</string>
+    <string name="page_find_stmsi_current_fail_times">失败次数:</string>
+    <string name="page_find_stmsi_current_pci">当前服务小区:</string>
+    <string name="page_find_stmsi_sort_by_count">按次数排序</string>
+    <string name="page_find_stmsi_title_stmsi">STMSI</string>
+    <string name="page_find_stmsi_title_count">次数</string>
+    <string name="page_find_stmsi_sort_by_time">按时间排序</string>
+    <string name="page_find_stmsi_title_time">时间</string>
+    <string name="page_find_stmsi_title_pci">PCI</string>
+    <string name="page_find_stmsi_title_board">板卡</string>
+    <string name="page_find_stmsi_title_earfcn">EARFCN</string>
     <string name="page_find_stmsi_target_stmsi">目标STMSI :</string>
     <string name="menu_find_stmsi_save">保存</string>
+    <!-- Orientation -->
     <string name="page_orientation_find_device_name">"设备名称"</string>
     <string name="page_orientation_find_stmsi">"STMSI"</string>
     <string name="page_orientation_find_start">"开始"</string>
@@ -99,8 +123,35 @@
     <string name="page_orientation_find_result_list_title_pci">PCI</string>
     <string name="page_orientation_find_result_graph_pucch">PUCCH</string>
     <string name="page_orientation_find_result_graph_pusch">PUSCH</string>
-    <string name="page_orientation_find_my_stmsi">本机STMSI :</string>
     <string name="page_orientation_find_target_stmsi">目标STMSI :</string>
+    <!-- interference  -->
+    <string name="page_interference_device_name">"设备名称"</string>
+    <string name="page_interference_start">"开始"</string>
+    <string name="page_interference_stop">"停止"</string>
+    <string name="page_interference_target">目标号码:</string>
+    <string name="page_interference_current_times">触发次数:</string>
+    <string name="page_interference_current_fail_times">失败次数:</string>
+    <string name="page_interference_current_pci">当前服务小区:</string>
+    <string name="page_interference_sort_by_count">按次数排序</string>
+    <string name="page_interference_title_stmsi">STMSI</string>
+    <string name="page_interference_title_count">次数</string>
+    <string name="page_interference_sort_by_time">按时间排序</string>
+    <string name="page_interference_title_time">时间</string>
+    <string name="page_interference_title_pci">PCI</string>
+    <string name="page_interference_title_board">板卡</string>
+    <string name="page_interference_title_earfcn">EARFCN</string>
+    <string name="page_interference_filter_count">过滤数量 :</string>
+    <string name="menu_interference_save">保存</string>
+    <!-- local info -->
+    <string name="page_local_info_my_stmsi">本机STMSI :</string>
+
+    <!-- status bar -->
+    <string name="page_status_bar_device_status">设备状态</string>
+    <string name="page_status_bar_agi_one">AGI 1</string>
+    <string name="page_status_bar_agi_two">AGI 2</string>
+    <string name="page_status_bar_device_confirm">驻留状态</string>
+    <string name="page_status_bar_rsrp">信号强度</string>
+    <string name="page_status_bar_pci">PCI</string>
 
     <!-- test cell montor -->
     <string name="page_test_cell_monitor_start">"开始"</string>
@@ -127,12 +178,5 @@
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
     <string name="title_activity_cell_monitor">CellMonitorActivity</string>
-    <!-- main menu -->
-    <string name="title_main_menu">主界面</string>
-    <string name="title_main_menu_cell_monitor">守控小区</string>
-    <string name="title_main_menu_find_STMSI">空码搜索</string>
-    <string name="title_main_menu_orientation">目标侧向</string>
-    <string name="title_main_menu_interference_detection">干扰探测</string>
-    <string name="title_main_menu_configuration">参数配置</string>
-    <string name="title_main_menu_cellPhone_info">本机信息</string>
+
 </resources>

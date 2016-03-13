@@ -12,6 +12,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.CompoundButton;
@@ -47,11 +48,15 @@ public class ConfigurationActivity extends AppCompatActivity {
 
     private RadioButton triggerSMS;
     private RadioButton triggerPhone;
+    private RadioButton SMSInside;
+    private RadioButton SMSOutside;
+    private RadioButton insideNormal;
+    private RadioButton insideSilent;
     private EditText triggerInterval;
     private EditText filterInterval;
     private EditText receivingAntennaNum;
     private EditText totalTriggerCount;
-    private EditText targetPhoneNum;
+    private EditText SMSCenter;
     private ConfigurationDBManager cmgr;
 
     private static final int DEFAULT_TRIGGER_INTERVAL_SMS_MIN = 10;
@@ -70,6 +75,7 @@ public class ConfigurationActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN|WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
         setContentView(R.layout.activity_configuration);
 
         initDefaultValue();
@@ -334,11 +340,15 @@ public class ConfigurationActivity extends AppCompatActivity {
         listView.setAdapter(adapter);
         triggerSMS = (RadioButton) findViewById(R.id.system_configure_trigger_sms);
         triggerPhone = (RadioButton) findViewById(R.id.system_configure_trigger_phone);
+        SMSInside = (RadioButton) findViewById(R.id.system_configure_trigger_sms_inside);
+        SMSOutside = (RadioButton) findViewById(R.id.system_configure_trigger_sms_outside);
+        insideNormal = (RadioButton) findViewById(R.id.system_configure_trigger_sms_inside_normal);
+        insideSilent = (RadioButton) findViewById(R.id.system_configure_trigger_sms_inside_silent);
         triggerInterval = (EditText) findViewById(R.id.system_configure_trigger_interval);
         filterInterval = (EditText) findViewById(R.id.system_configure_filter_threshold);
         receivingAntennaNum = (EditText) findViewById(R.id.system_configure_receiving_antenna_count);
         totalTriggerCount = (EditText) findViewById(R.id.system_configure_trigger_max);
-        targetPhoneNum = (EditText) findViewById(R.id.system_configure_target);
+        SMSCenter = (EditText) findViewById(R.id.system_configure_SMS_center);
         cmgr = new ConfigurationDBManager(this);
 
         final ConfigurationDAO dao = cmgr.getConfiguration(Global.UserInfo.user_name);
@@ -382,6 +392,20 @@ public class ConfigurationActivity extends AppCompatActivity {
                 case PHONE:
                     triggerPhone.setChecked(true);
             }
+            switch (dao.smsType) {
+                case INSIDE:
+                    SMSInside.setChecked(true);
+                    break;
+                case OUTSIDE:
+                    SMSOutside.setChecked(true);
+            }
+            switch (dao.insideSMSType) {
+                case NORMAL:
+                    insideNormal.setChecked(true);
+                    break;
+                case SILENT:
+                    insideSilent.setChecked(true);
+            }
         }
 
         String text = String.format("%d~%d", DEFAULT_SMS_FILTER_INTERVAL_MIN, DEFAULT_SMS_FILTER_INTERVAL_MAX);
@@ -393,13 +417,12 @@ public class ConfigurationActivity extends AppCompatActivity {
 
         receivingAntennaNum.setText(String.valueOf(dao == null ? DEFAULT_RECEIVINGANTENNANUM : dao.receivingAntennaNum));
         totalTriggerCount.setText(String.valueOf(dao == null ? DEFAULT_TOTAL_TRIGGER_COUNT : dao.totalTriggerCount));
-        targetPhoneNum.setText(dao == null ? "" : dao.targetPhoneNum);
+        SMSCenter.setText(dao == null ? "" : dao.smsCenter);
     }
 
     private boolean validate() {
         try {
             validateNull();
-            validatePhoneNumber();
             validateTriggerInterval();
             validateFilterInterval();
         } catch (IllegalArgumentException e) {
@@ -428,17 +451,12 @@ public class ConfigurationActivity extends AppCompatActivity {
     private void validateNull() throws IllegalArgumentException {
         if (triggerInterval.getText().toString().isEmpty()
                 || !(triggerSMS.isChecked() || triggerPhone.isChecked())
+                || !(SMSInside.isChecked() || SMSOutside.isChecked())
+                || !(insideSilent.isChecked() || insideNormal.isChecked())
                 || filterInterval.getText().toString().isEmpty()
                 || receivingAntennaNum.getText().toString().isEmpty()
-                || totalTriggerCount.getText().toString().isEmpty()
-                || targetPhoneNum.getText().toString().isEmpty()) {
+                || totalTriggerCount.getText().toString().isEmpty()) {
             throw new IllegalArgumentException("参数不可为空!");
-        }
-    }
-
-    private void validatePhoneNumber() throws IllegalArgumentException {
-        if (!PHONE_NUMBER.matcher(targetPhoneNum.getText().toString()).matches()) {
-            throw new IllegalArgumentException("手机号码不合法!");
         }
     }
 
@@ -461,18 +479,20 @@ public class ConfigurationActivity extends AppCompatActivity {
     private void saveToCache() {
         Global.Configuration.name = Global.UserInfo.user_name;
         Global.Configuration.type = triggerSMS.isChecked() ? Status.TriggerType.SMS : Status.TriggerType.PHONE;
+        Global.Configuration.smsType = SMSInside.isChecked() ? Status.TriggerSMSType.INSIDE : Status.TriggerSMSType.OUTSIDE;
+        Global.Configuration.insideSMSType = insideNormal.isChecked() ? Status.InsideSMSType.NORMAL : Status.InsideSMSType.SILENT;
         Global.Configuration.triggerInterval = Integer.parseInt(triggerInterval.getText().toString());
         Global.Configuration.filterInterval = Integer.parseInt(filterInterval.getText().toString());
         Global.Configuration.silenceCheckTimer = DEFAULT_SILENCECHECKTIME;
         Global.Configuration.receivingAntennaNum = Integer.parseInt(receivingAntennaNum.getText().toString());
         Global.Configuration.triggerTotalCount = Integer.parseInt(totalTriggerCount.getText().toString());
-        Global.Configuration.targetPhoneNum = targetPhoneNum.getText().toString();
+        Global.Configuration.smsCenter = SMSCenter.getText().toString();
     }
 
     private void saveToDAO() {
-        ConfigurationDAO dao = new ConfigurationDAO(Global.Configuration.name, Global.Configuration.type, Global.Configuration.triggerInterval,
+        ConfigurationDAO dao = new ConfigurationDAO(Global.Configuration.name, Global.Configuration.type,Global.Configuration.smsType ,Global.Configuration.insideSMSType,Global.Configuration.triggerInterval,
                 Global.Configuration.filterInterval, Global.Configuration.silenceCheckTimer, Global.Configuration.receivingAntennaNum,
-                Global.Configuration.triggerTotalCount, Global.Configuration.targetPhoneNum);
+                Global.Configuration.triggerTotalCount, Global.Configuration.targetPhoneNum,Global.Configuration.smsCenter);
         cmgr.insertOrUpdate(dao);
     }
     private void sendMyBroadcast(String flag,MonitorDevice device){

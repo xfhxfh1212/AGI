@@ -1,53 +1,67 @@
 package com.example.jbtang.agi.ui;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.graphics.Color;
 import android.view.Menu;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.GridView;
 import android.widget.SimpleAdapter;
-import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.jbtang.agi.R;
 import com.example.jbtang.agi.core.Global;
 import com.example.jbtang.agi.core.Status;
+import com.example.jbtang.agi.dao.configuration.ConfigurationDAO;
+import com.example.jbtang.agi.dao.configuration.ConfigurationDBManager;
 import com.example.jbtang.agi.dao.devices.DeviceDAO;
 import com.example.jbtang.agi.dao.devices.DeviceDBManager;
 import com.example.jbtang.agi.device.DeviceManager;
 import com.example.jbtang.agi.device.MonitorDevice;
 import com.example.jbtang.agi.external.MonitorApplication;
+import com.example.jbtang.agi.external.MonitorHelper;
+import com.example.jbtang.agi.external.service.MonitorService;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 /**
  * Created by xiang on 2016/1/11.
  */
 public class MainMenuActivity extends AppCompatActivity {
+    private static final int DEFAULT_TRIGGER_INTERVAL_SMS_MAX = 30;
+    private static final int DEFAULT_SMS_FILTER_INTERVAL_MAX = 10;
+    private static final int DEFAULT_SILENCECHECKTIME = 80;
+    private static final int DEFAULT_RECEIVINGANTENNANUM = 2;
+    private static final int DEFAULT_TOTAL_TRIGGER_COUNT = 30;
+    private static final String SAVE_SUCCEED = "保存成功";
+    private static final String WRONG_PHONE_NUM = "号码输入有误";
+    private static final Pattern PHONE_NUMBER = Pattern.compile("^((13[0-9])|(15[^4,\\D])|(18[0-9]))\\d{8}$");
     private GridView gridView;
     private ArrayList<HashMap<String,Object>> itemList;
     private SimpleAdapter simpleAdapter;
     private String texts[];
     private int images[];
     private long exitTime = 0;
+    private EditText phoneNum;
+    private Button saveBtn;
     private Button connectBtn;
     private Button disconnectBtn;
     private TextView deviceStatusText;
@@ -55,10 +69,13 @@ public class MainMenuActivity extends AppCompatActivity {
     private TextView deviceColorTwo;
     private List<MonitorDevice> devices;
     private DeviceDBManager dmgr;
+    private ConfigurationDBManager cmgr;
+    private ConfigurationDAO dao;
     private myBroadcastReceiver broadcastReceiver;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN);
         setContentView(R.layout.activity_main_menu);
         init();
     }
@@ -68,7 +85,7 @@ public class MainMenuActivity extends AppCompatActivity {
                 R.drawable.orientation,
                 R.drawable.interference,
                 R.drawable.configuration,
-                R.drawable.cellphone_info};
+                R.drawable.local_info};
         texts = new String[]{this.getString(R.string.title_main_menu_cell_monitor),
                 this.getString(R.string.title_main_menu_find_STMSI),
                 this.getString(R.string.title_main_menu_orientation),
@@ -91,6 +108,9 @@ public class MainMenuActivity extends AppCompatActivity {
         gridView.setAdapter(simpleAdapter);
         gridView.setOnItemClickListener(new ItemClickListener());
 
+        phoneNum = (EditText) findViewById(R.id.main_menu_target_phone_num);
+        saveBtn = (Button) findViewById(R.id.main_menu_target_phone_num_save);
+
         connectBtn = (Button) findViewById(R.id.main_menu_device_connnect);
         disconnectBtn = (Button) findViewById(R.id.main_menu_device_disconnect);
         connectBtn.setOnClickListener(new conBtnOnclickListener());
@@ -103,9 +123,27 @@ public class MainMenuActivity extends AppCompatActivity {
         dmgr = new DeviceDBManager(this);
         devices = getDevices();
 
+        cmgr = new ConfigurationDBManager(this);
+        dao = cmgr.getConfiguration(Global.UserInfo.user_name);
+        saveToCache();
+        phoneNum.setText(Global.Configuration.targetPhoneNum);
+        saveBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (PHONE_NUMBER.matcher(phoneNum.getText().toString()).matches()) {
+                    Global.Configuration.targetPhoneNum = phoneNum.getText().toString();
+                    saveToDAO();
+                    Toast.makeText(getApplicationContext(), SAVE_SUCCEED, Toast.LENGTH_SHORT).show();
+                }
+                else{
+                    Toast.makeText(getApplicationContext(), WRONG_PHONE_NUM, Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
         broadcastReceiver = new myBroadcastReceiver();
         IntentFilter filter = new IntentFilter();
-        filter.addAction(MonitorApplication.BROAD_FROM_MAIN_MENU_ACTIVITY);
+        filter.addAction(MonitorApplication.BROAD_FROM_MAIN_MENU_DEVICE);
         filter.addAction(MonitorApplication.BROAD_FROM_CONFIGURATION_ACTIVITY);
         registerReceiver(broadcastReceiver, filter);
 
@@ -116,6 +154,7 @@ public class MainMenuActivity extends AppCompatActivity {
             }
         }, 1, 3, TimeUnit.SECONDS);
     }
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -136,15 +175,39 @@ public class MainMenuActivity extends AppCompatActivity {
 
     public void exit() {
         if ((System.currentTimeMillis() - exitTime) > 2000) {
-            Toast.makeText(getApplicationContext(), "再按一次退出程序",
+            Toast.makeText(this, "再按一次退出程序",
                     Toast.LENGTH_SHORT).show();
             exitTime = System.currentTimeMillis();
         } else {
             dmgr.closeDB();
+            cmgr.closeDB();
             finish();
             System.exit(0);
         }
     }
+    @Override
+    public void onDestroy() {
+//        unbindService(connection);
+//        stopService(startIntent);
+        super.onDestroy();
+    }
+    @Override
+    protected void onResume() {
+        Log.e("test", "onResume");
+        super.onResume();
+    }
+//    @Override
+//    public void onPause() {
+//        Log.e("Test", "MainMenuActivity onPause");
+//        super.onPause();
+//    }
+//
+//    @Override
+//    public void onStop() {
+//        Log.e("Test", "MainMenuActivity onStop");
+//        super.onStop();
+//    }
+
     class ItemClickListener implements AdapterView.OnItemClickListener{
 
         @Override
@@ -165,11 +228,13 @@ public class MainMenuActivity extends AppCompatActivity {
                     startActivity(new Intent(MainMenuActivity.this, OrientationFindingActivity.class));
                     break;
                 case R.drawable.interference:
+                    startActivity(new Intent(MainMenuActivity.this,InterferenceActivity.class));
                     break;
                 case R.drawable.configuration:
                     startActivity(new Intent(MainMenuActivity.this, ConfigurationActivity.class));
                     break;
-                case R.drawable.cellphone_info:
+                case R.drawable.local_info:
+                    startActivity(new Intent(MainMenuActivity.this, LocalInfoActivity.class));
                     break;
             }
         }
@@ -215,7 +280,7 @@ public class MainMenuActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             // TODO Auto-generated method stub
-            if(intent.getAction().equals(MonitorApplication.BROAD_FROM_MAIN_MENU_ACTIVITY)) {
+            if(intent.getAction().equals(MonitorApplication.BROAD_FROM_MAIN_MENU_DEVICE)) {
                 final int colorOne = intent.getIntExtra("colorOne", 0xFFFF0000);
                 final int colorTwo = intent.getIntExtra("colorTwo", 0xFFFF0000);
                 final String statusText = intent.getStringExtra("statusText");
@@ -288,9 +353,28 @@ public class MainMenuActivity extends AppCompatActivity {
         intent.putExtra("colorOne",colorOne);
         intent.putExtra("colorTwo",colorTwo);
         intent.putExtra("statusText",statusText);
-        intent.setAction(MonitorApplication.BROAD_FROM_MAIN_MENU_ACTIVITY);
+        intent.setAction(MonitorApplication.BROAD_FROM_MAIN_MENU_DEVICE);
         sendBroadcast(intent);
     }
+    private void saveToCache() {
+        Global.Configuration.name = Global.UserInfo.user_name;
+        Global.Configuration.type = (dao == null ? Status.TriggerType.SMS : dao.type);
+        Global.Configuration.smsType = (dao == null ? Status.TriggerSMSType.INSIDE : dao.smsType);
+        Global.Configuration.insideSMSType = (dao == null ? Status.InsideSMSType.NORMAL : dao.insideSMSType);
+        Global.Configuration.triggerInterval = (dao == null ? DEFAULT_TRIGGER_INTERVAL_SMS_MAX : dao.triggerInterval);
+        Global.Configuration.filterInterval = (dao == null ? DEFAULT_SMS_FILTER_INTERVAL_MAX : dao.filterInterval);
+        Global.Configuration.silenceCheckTimer = DEFAULT_SILENCECHECKTIME;
+        Global.Configuration.receivingAntennaNum = (dao == null ? DEFAULT_RECEIVINGANTENNANUM : dao.receivingAntennaNum);
+        Global.Configuration.triggerTotalCount = (dao == null ? DEFAULT_TOTAL_TRIGGER_COUNT : dao.totalTriggerCount);
+        Global.Configuration.targetPhoneNum = (dao == null ? "" : dao.targetPhoneNum);
+        Global.Configuration.smsCenter = (dao == null ? "" : dao.smsCenter);
+    }
 
+    private void saveToDAO() {
+        ConfigurationDAO dao = new ConfigurationDAO(Global.Configuration.name, Global.Configuration.type,Global.Configuration.smsType ,Global.Configuration.insideSMSType,Global.Configuration.triggerInterval,
+                Global.Configuration.filterInterval, Global.Configuration.silenceCheckTimer, Global.Configuration.receivingAntennaNum,
+                Global.Configuration.triggerTotalCount, Global.Configuration.targetPhoneNum,Global.Configuration.smsCenter);
+        cmgr.insertOrUpdate(dao);
+    }
 }
 

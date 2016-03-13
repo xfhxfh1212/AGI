@@ -1,8 +1,8 @@
 package com.example.jbtang.agi.trigger;
 
-import android.app.PendingIntent;
-import android.content.Intent;
-import android.util.Log;
+//import android.app.PendingIntent;
+//import android.content.Intent;
+//import android.util.Log;
 
 import java.util.regex.Pattern;
 
@@ -16,16 +16,33 @@ public class SMSHelper {
 
     private String SCA;         //短信中心号码
     private String PDU_Type;    //协议数据单元类型
+    private String MR = "00";     //所有成功的SMS-SUBMIT参考数目(0..255)
     private String DA;          //接收方SME的地址
-    private String DCS;         //参数表示用户数据(UD)采用什么编码方案
     private String PID;         //参数显示SMSC以何种方式处理SM (比如FAX,、Voice等)
+    private String DCS;         //参数表示用户数据(UD)采用什么编码方案
+    private String VP = "00";     //参数表示消息在SMSC中不再有效的时长
     private String UDL;         //用户数据段长度
     private String UD;          //SM数据
-    private String MR = "00";     //所有成功的SMS-SUBMIT参考数目(0..255)
-    private String VP = "C4";     //参数表示消息在SMSC中不再有效的时长
 
     private String[] MaxPDU;     //存在多条短信情况，可以允许多条短信发送，所谓的长短信发送功能
 
+
+    private void setSCA(String value){
+        if (value == null || value.length() == 0)      //号码为空
+            SCA = "00";
+        else
+        {
+            if (value.charAt(0) == '+')
+                value = value.substring(1);
+
+            if (!value.substring(0, 2).equals("86"))
+                value = "86" + value;
+
+            value = "91" + ParityChange(value);
+            SCA = String.format("%02X",value.length() / 2) + value;
+        }
+
+    }
     /**
      * @param value absolute phone number without +86. e.g. 18692128345
      */
@@ -33,10 +50,15 @@ public class SMSHelper {
         if (value == null || value.length() == 0) {     //号码为空
             DA = "00";
         } else {
+            if (value.charAt(0) == '+')
+                value = value.substring(1);
+            if (!value.substring(0, 2).equals("86"))
+                value = "86" + value;
+
             int len = value.length();
             value = ParityChange(value);
             //采用国内编码准则？
-            DA = String.format("%02X", len) + "A1" + value;
+            DA = String.format("%02X", len) + "91" + value;
         }
     }
 
@@ -54,8 +76,8 @@ public class SMSHelper {
             str += "F";
         }
         for (int i = 0; i < str.length(); i += 2) {
-            result += str.getBytes()[i + 1];
-            result += str.getBytes()[i];
+            result += str.charAt(i + 1);
+            result += str.charAt(i);
         }
 
         return result;
@@ -104,11 +126,12 @@ public class SMSHelper {
     }
 
     private String getDCSMeaning() {
-        String tStr = String.format("%08b", Integer.parseInt(DCS, 16));
+        String b = Integer.toBinaryString(Integer.parseInt(DCS, 16)) ;
+        String tStr = b.length()<8?"00000000".substring(b.length())+b:b;
         String result;
-        result = tStr.substring(2, 1).equals("1") ? "GSM压缩" : "未压缩";
-        result += tStr.substring(3, 1).equals("1") ? (tStr.substring(6, 1).equals("1") ? (tStr.substring(7, 1).equals("1") ? "用户设备" : "SIM卡禁止到终端") : (tStr.substring(7, 1).equals("1") ? "存储SIM卡" : "直接到终端")) : "没有消息类别";
-        result += tStr.substring(4, 1).equals("1") ? (tStr.substring(5, 1).equals("1") ? "保留" : "USC2") : ((tStr.substring(5, 1).equals("1") ? "8bit" : "7bit"));
+        result = tStr.substring(2, 3).equals("1") ? "GSM压缩" : "未压缩";
+        result += tStr.substring(3, 4).equals("1") ? (tStr.substring(6, 7).equals("1") ? (tStr.substring(7, 8).equals("1") ? "用户设备" : "SIM卡禁止到终端") : (tStr.substring(7, 8).equals("1") ? "存储SIM卡" : "直接到终端")) : "没有消息类别";
+        result += tStr.substring(4, 5).equals("1") ? (tStr.substring(5, 6).equals("1") ? "保留" : "USC2") : ((tStr.substring(5, 6).equals("1") ? "8bit" : "7bit"));
         return result;
     }
 
@@ -138,14 +161,15 @@ public class SMSHelper {
     ///
     //////////////////////////////////////////////////////////////////////////
     private String getPDU_Type_Value() {
-        String result = String.format("%08b", Integer.parseInt(PDU_Type, 16));
+        String b = Integer.toBinaryString(Integer.parseInt(PDU_Type, 16)) ;
+        String result = b.length()<8?"00000000".substring(b.length())+b:b;
 
         String ret = (result.substring(0, 1).equals("1") ? "有应答路径" : "无应答路径");
-        ret += "|" + (result.substring(1, 1).equals("1") ? "有用户头" : "无用户头");
-        ret += "|" + (result.substring(2, 1).equals("1") ? "有报告将返回" : "无报告不返回");
-        ret += "|" + (result.substring(3, 2).equals("1") ? "无有效期" : (result.substring(3, 2).equals("1") ? "增加有效期" : (result.substring(3, 2).equals("1") ? "相对有效期" : "绝对有效期")));
-        ret += "|" + (result.substring(5, 1).equals("1") ? "无等待消息拒绝重复" : "有等待消息接受重复");
-        ret += "|" + (result.substring(6, 2).equals("1") ? "接收短信" : (result.substring(6, 2).equals("1") ? "发送报告" : result.substring(6, 2).equals("1") ? "状态报告" : "保留"));
+        ret += "|" + (result.substring(1, 2).equals("1") ? "有用户头" : "无用户头");
+        ret += "|" + (result.substring(2, 3).equals("1") ? "有报告将返回" : "无报告不返回");
+        ret += "|" + (result.substring(3, 5).equals("00") ? "无有效期" : (result.substring(3, 2).equals("01") ? "增加有效期" : (result.substring(3, 2).equals("10") ? "相对有效期" : "绝对有效期")));
+        ret += "|" + (result.substring(5, 6).equals("1") ? "无等待消息拒绝重复" : "有等待消息接受重复");
+        ret += "|" + (result.substring(6, 8).equals("00") ? "接收短信" : (result.substring(6, 2).equals("01") ? "发送报告" : result.substring(6, 2).equals("10") ? "状态报告" : "保留"));
 
         return ret;
     }
@@ -215,16 +239,16 @@ public class SMSHelper {
             //取出相应的用户头，随后组装内容去
             int lenUDHL = Integer.parseInt(UD.substring(0, 2), 16);
             len = len - (lenUDHL + 1) * 2;
-            UDtemp = UD.substring((lenUDHL + 1) * 2, len);
+            UDtemp = UD.substring((lenUDHL + 1) * 2, (lenUDHL + 1) * 2 + len);
 
-            String UDHL = UD.substring(2, lenUDHL * 2);
+            String UDHL = UD.substring(2, 2 + lenUDHL * 2);
 
             if (UDHL.substring(0, 2).equals("00")) {
                 //是分拆短信
                 int lenF = Integer.parseInt(UDHL.substring(2, 2), 16);
-                int iMr = Integer.parseInt(UDHL.substring(4, 2), 16);
-                int iTotal = Integer.parseInt(UDHL.substring(6, 2), 16);
-                int iCur = Integer.parseInt(UDHL.substring(8, 2), 16);
+                int iMr = Integer.parseInt(UDHL.substring(4, 6), 16);
+                int iTotal = Integer.parseInt(UDHL.substring(6, 8), 16);
+                int iCur = Integer.parseInt(UDHL.substring(8, 10), 16);
 
                 resultAdd = iCur + "/" + iTotal + " ";
             }
@@ -232,11 +256,11 @@ public class SMSHelper {
         }
 
         String DCS_Meaning = getDCSMeaning();
-        switch (DCS_Meaning.substring(DCS_Meaning.length() - 4, 4)) {
+        switch (DCS_Meaning.substring(DCS_Meaning.length() - 4, DCS_Meaning.length())) {
             case "USC2":
                 //四个一组，每组译为一个USC2字符
                 for (int i = 0; i < len; i += 4) {
-                    String temp = UDtemp.substring(i, 4);
+                    String temp = UDtemp.substring(i, i + 4);
 
                     int byte1 = Integer.parseInt(temp, 16);
 
@@ -269,8 +293,9 @@ public class SMSHelper {
         String b7BinStr = "";
 
         for (int i = 0; i < userData.length(); i++) {
-            oldBin[i / 2] = (byte) Integer.parseInt(userData.substring(i, 2), 16);
-            String tStr = String.format("%08b", (int) oldBin[i / 2]);
+            oldBin[i / 2] = (byte) Integer.parseInt(userData.substring(i, i + 2), 16);
+            String b = Integer.toBinaryString((int) oldBin[i / 2]) ;
+            String tStr = b.length()<8?"00000000".substring(b.length())+b:b;
             b7BinStr = tStr + b7BinStr;
             i++;
         }
@@ -278,7 +303,7 @@ public class SMSHelper {
         String Newb7Str = "";
 
         do {
-            Newb7Str += (char) Integer.parseInt(b7BinStr.substring(b7BinStr.length() - 7, 7), 2);
+            Newb7Str += (char) Integer.parseInt(b7BinStr.substring(b7BinStr.length() - 7, b7BinStr.length()), 2);
             b7BinStr = b7BinStr.substring(0, b7BinStr.length() - 7);
         } while (b7BinStr.length() > 6);
 
@@ -307,14 +332,14 @@ public class SMSHelper {
         byte[] pdu8 = new byte[userData.length() / 2];
 
         for (int i = 0; i < userData.length() / 2; i++) {
-            pdu8[i] = (byte) Integer.parseInt(userData.substring(i * 2, 2), 16);
+            pdu8[i] = (byte) Integer.parseInt(userData.substring(i * 2, i*2 + 2), 16);
         }
 
         String ret = "";
         try {
             ret = new String(pdu8, "UTF-8");
         } catch (Exception e) {
-            Log.d(TAG, "PDU8BitDecode failed");
+            //Log.d(TAG, "PDU8BitDecode failed");
         }
         return ret;
     }
@@ -323,20 +348,21 @@ public class SMSHelper {
         byte[] Bytes = new byte[]{};
 
         String DCS_Meaning = getDCSMeaning();
-        switch (DCS_Meaning.substring(DCS_Meaning.length() - 4, 4)) {
+        switch (DCS_Meaning.substring(DCS_Meaning.length() - 4, DCS_Meaning.length())) {
             case "USC2":
                 //USC2 编码格式
                 UD = "";
 
                 try {
-                    Bytes = value.getBytes("UTF8");
+                    Bytes = value.getBytes("unicode");
                 } catch (Exception e) {
-                    Log.d(TAG, "setUD_Value failed");
+                    //Log.d(TAG, "setUD_Value failed");
                 }
 
                 for (byte b : Bytes) {
                     UD += String.format("%02X", b);
                 }
+                UD = UD.substring(4);
                 UDL = String.format("%02X", UD.length() / 2);
 
                 break;
@@ -373,8 +399,9 @@ public class SMSHelper {
         int iCount = 0;
 
         for (; iCount < b7data.length; ) {
-            b7Str[iCount] = String.format("%08b", (int) b7data[iCount]);
-            b7Str[iCount] = b7Str[iCount].substring(1, 7);
+            String b = Integer.toBinaryString((int) b7data[iCount]) ;
+            b7Str[iCount] = b.length()<8?"00000000".substring(b.length())+b:b;
+            b7Str[iCount] = b7Str[iCount].substring(1, 8);
             b7BinStr = b7Str[iCount] + b7BinStr;
             iCount++;
         }
@@ -382,18 +409,13 @@ public class SMSHelper {
         String Newb7Str = "";
 
         do {
-            Newb7Str += String.format("%X", Integer.parseInt(b7BinStr.substring(b7BinStr.length() - 8, 8), 2));
+            Newb7Str += String.format("%02X", Integer.parseInt(b7BinStr.substring(b7BinStr.length() - 8, b7BinStr.length()), 2));
             b7BinStr = b7BinStr.substring(0, b7BinStr.length() - 8);
         } while (b7BinStr.length() > 7);
 
         if (b7BinStr.length() > 0) {
-            int left = 8 - b7BinStr.length();
-            String pad = "";
-            while (left-- > 0) {
-                pad += "0";
-            }
-            b7BinStr += pad;
-            Newb7Str += String.format("%x", Integer.parseInt(b7BinStr, 2));
+            b7BinStr = "00000000".substring(b7BinStr.length()) + b7BinStr;
+            Newb7Str += String.format("%02X", Integer.parseInt(b7BinStr, 2));
         }
         return Newb7Str;
     }
@@ -409,7 +431,7 @@ public class SMSHelper {
         try {
             pdu8 = userData.getBytes("UTF8");
         } catch (Exception e) {
-            Log.d(TAG, "PDU8BitEncode failed");
+            //Log.d(TAG, "PDU8BitEncode failed");
         }
         String result = "";
 
@@ -429,8 +451,8 @@ public class SMSHelper {
      * @param PDUNums    是否是一条短信的PDU，还是多条短信的PDU，作为返回值
      * @return
      */
-    private String sms_Send_PDU_Encoder(String phone, String text, String DCSFormat, String SendFormat, String SendType, int PDUNums) {
-        SCA = "00"; //采用默认的短消息中心，发送不填，为无短消息中心
+    public String sms_Send_PDU_Encoder(String phone, String smsCenter,String text, String DCSFormat, String SendFormat, String SendType, int PDUNums) {
+        setSCA(smsCenter); //采用默认的短消息中心，发送不填，为无短消息中心
         setDA(phone);
 
         //GSM压缩|未压缩，中文|8bit|7bit，特殊，用户设备|SIM卡禁止到终端|存储SIM卡|闪信(直接到终端)
@@ -450,7 +472,7 @@ public class SMSHelper {
         int divNum = text.length();
         String DCS_Meaning = getDCSMeaning();
 
-        switch (DCS_Meaning.substring(DCS_Meaning.length() - 4, 4)) {
+        switch (DCS_Meaning.substring(DCS_Meaning.length() - 4, DCS_Meaning.length())) {
             case "USC2":
                 if (divNum > 70) divNum = 67;
                 else divNum = 70;
@@ -487,7 +509,7 @@ public class SMSHelper {
         for (int i = 0; i < smsTimes; i++) {
 
             //最后设置
-            String nPD = text.substring(i * divNum, ((i * divNum + divNum) > text.length()) ? text.length() - i * divNum : divNum);
+            String nPD = text.substring(i * divNum, i * divNum + (((i * divNum + divNum) > text.length()) ? text.length() - i * divNum : divNum));
             setUD_Value(nPD);
 
             if (smsTimes > 1) {
@@ -497,9 +519,9 @@ public class SMSHelper {
                 int iLen = Integer.parseInt(UDL, 16);
                 iLen = iLen + 6;
 
-                MaxPDU[i] = SCA + PDU_Type + MR + DA + PID + DCS + VP + String.format("%02X", iLen) + UDHLStr + UD;
+                MaxPDU[i] = "|" +SCA +"|" + PDU_Type + MR + DA + PID + DCS + VP + String.format("%02X", iLen) + UDHLStr + UD;
             } else
-                MaxPDU[0] = SCA + PDU_Type + MR + DA + PID + DCS + VP + UDL + UD;
+                MaxPDU[0] = "|" +SCA +"|" + PDU_Type + MR + DA + PID + DCS + VP + UDL + UD;
         }
 
         PDUNums = smsTimes;
@@ -528,3 +550,4 @@ public class SMSHelper {
 
 
 }
+

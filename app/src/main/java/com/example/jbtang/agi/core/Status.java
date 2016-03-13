@@ -24,7 +24,8 @@ public class Status {
 
     public enum Service {
         FINDSTMIS,
-        ORIENTATION
+        ORIENTATION,
+        INTERFERENCE
     }
 
     public enum BoardType {
@@ -37,6 +38,15 @@ public class Status {
         PHONE
     }
 
+    public enum TriggerSMSType{
+        INSIDE,
+        OUTSIDE
+    }
+
+    public enum InsideSMSType{
+        NORMAL,
+        SILENT
+    }
     public enum SMSResult{
         OK,
         Failed

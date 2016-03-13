@@ -9,7 +9,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -26,15 +25,16 @@ import com.example.jbtang.agi.core.Global;
 import com.example.jbtang.agi.core.Status;
 import com.example.jbtang.agi.device.DeviceManager;
 import com.example.jbtang.agi.external.MonitorApplication;
+import com.example.jbtang.agi.external.MonitorHelper;
 import com.example.jbtang.agi.service.OrientationFinding;
 import com.example.jbtang.agi.utils.BarChartView;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
+
+import io.fmaster.LTEServCellMessage;
 
 /**
  * Created by jbtang on 11/7/2015.
@@ -43,7 +43,8 @@ public class OrientationFindingActivity extends AppCompatActivity {
     private static final int RSRP_LIST_MAX_SIZE = 4;
     private boolean startToFind;
 
-    private TextView myStmsiTextView;
+    private TextView currentPCi;
+    private TextView targetPhoneNum;
     private TextView targetStmsiTextView;
     private Button startButton;
     private Button stopButton;
@@ -51,8 +52,9 @@ public class OrientationFindingActivity extends AppCompatActivity {
     private LinearLayout resultGraphLayout;
     private myHandler handler;
     private List<OrientationFinding.OrientationInfo> orientationInfoList;
+    private TextView deviceStatusColor;
     private TextView cellConfirmColor;
-    private TextView cellRsrpColor;
+    private TextView cellRsrp;
     private TextView pciNum;
 
     public static List<String> options = Arrays.asList("", "一", "二", "三", "四");
@@ -67,8 +69,15 @@ public class OrientationFindingActivity extends AppCompatActivity {
         OrientationFinding.getInstance().targetStmsi = Global.TARGET_STMSI;
         orientationInfoList = new ArrayList<>();
         init();
+        MonitorHelper.startService(this);
     }
 
+    @Override
+    protected void onDestroy() {
+        unregisterReceiver(receiver);
+        MonitorHelper.stopService(this);
+        super.onDestroy();
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -92,12 +101,14 @@ public class OrientationFindingActivity extends AppCompatActivity {
     }
 
     private void init() {
-        //myStmsiTextView = (TextView) findViewById(R.id.orientation_find_my_stmsi);
+        currentPCi = (TextView) findViewById(R.id.orientation_current_pci);
+        targetPhoneNum = (TextView) findViewById(R.id.orientation_target_phone_num);
         targetStmsiTextView = (TextView) findViewById(R.id.orientation_find_target_stmsi);
         startButton = (Button) findViewById(R.id.orientation_find_start);
         stopButton = (Button) findViewById(R.id.orientation_find_stop);
+        deviceStatusColor = (TextView) findViewById(R.id.orientation_device_background);
         cellConfirmColor = (TextView)findViewById(R.id.orientation_confirm_background);
-        cellRsrpColor = (TextView)findViewById(R.id.orientation_rsrp_background);
+        cellRsrp = (TextView)findViewById(R.id.orientation_rsrp);
         pciNum = (TextView)findViewById(R.id.orientation_pci_num);
 
         resultListView = (ListView) findViewById(R.id.orientation_find_result_list);
@@ -105,6 +116,7 @@ public class OrientationFindingActivity extends AppCompatActivity {
 
         resultGraphLayout = (LinearLayout) findViewById(R.id.orientation_find_layout_result_graph);
 
+        targetPhoneNum.setText(Global.Configuration.targetPhoneNum);
         targetStmsiTextView.setText(OrientationFinding.getInstance().targetStmsi);
 
         startButton.setOnClickListener(new View.OnClickListener() {
@@ -124,7 +136,9 @@ public class OrientationFindingActivity extends AppCompatActivity {
             }
         });
 
-        IntentFilter filter = new IntentFilter(MonitorApplication.BROAD_TO_ORIENTATION_ACTIVITY);
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(MonitorApplication.BROAD_TO_MAIN_ACTIVITY);
+        filter.addAction(MonitorApplication.BROAD_FROM_MAIN_MENU_DEVICE);
         registerReceiver(receiver, filter);
 
         OrientationFinding.getInstance().setOutHandler(new myHandler(this));
@@ -135,7 +149,7 @@ public class OrientationFindingActivity extends AppCompatActivity {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                if(temtype == "all") {
+                if(temtype.equals("all")) {
                     ((MyAdapter) resultListView.getAdapter()).notifyDataSetChanged();
                     resultListView.setSelection(orientationInfoList.size() - 1);
                     refreshBarChart();
@@ -168,22 +182,14 @@ public class OrientationFindingActivity extends AppCompatActivity {
     }
     private void refreshCellStatusBar(){
         if(DeviceManager.getInstance().getDevices().get(0).getWorkingStatus()== Status.DeviceWorkingStatus.NORMAL){
-            Float rsrp = DeviceManager.getInstance().getDevices().get(0).getCellInfo().rsrp;
+            String rsrp = String.format("%.2f",DeviceManager.getInstance().getDevices().get(0).getCellInfo().rsrp);
             cellConfirmColor.setBackgroundColor(Color.GREEN);
-            if(rsrp >= -90){
-                cellRsrpColor.setBackgroundColor(Color.GREEN);
-            }else if(rsrp < -90 && rsrp >= -100){
-                cellRsrpColor.setBackgroundColor(Color.YELLOW);
-            }else if(rsrp < -100 && rsrp >= -110){
-                cellRsrpColor.setBackgroundColor(Color.MAGENTA);
-            }else if(rsrp <-110){
-                cellRsrpColor.setBackgroundColor(Color.RED);
-            }
+            cellRsrp.setText(rsrp);
         }else{
             cellConfirmColor.setBackgroundColor(Color.RED);
-            cellRsrpColor.setBackgroundColor(Color.RED);
+            cellRsrp.setText("N/A");
         }
-        pciNum.setText(DeviceManager.getInstance().getDevices().get(0).getCellInfo().pci.toString());
+        pciNum.setText(String.valueOf(DeviceManager.getInstance().getDevices().get(0).getCellInfo().pci));
     }
     static class myHandler extends Handler {
         private final WeakReference<OrientationFindingActivity> mOuter;
@@ -271,8 +277,31 @@ public class OrientationFindingActivity extends AppCompatActivity {
             if (intent.getAction().equals("")) {
                 return;
             }
-            //refreshView(intent);
+            if(intent.getAction().equals(MonitorApplication.BROAD_TO_MAIN_ACTIVITY)){
+                refreshServerCell(intent);
+            }
+            else if(intent.getAction().equals(MonitorApplication.BROAD_FROM_MAIN_MENU_DEVICE)){
+                refreshDeviceStatus(intent);
+            }
         }
+    }
+    private void refreshServerCell(Intent intent){
+        int flag = intent.getFlags();
+        Bundle bundle = intent.getExtras();
+        switch (flag){
+            case MonitorApplication.SERVER_CELL_FLAG:
+                LTEServCellMessage myServCellMessage = bundle.getParcelable("msg");
+                if(myServCellMessage != null){
+                    currentPCi.setText(String.valueOf(myServCellMessage.getPCI()));
+                }
+                break;
+            default:
+                break;
+        }
+    }
+    private void refreshDeviceStatus(Intent intent){
+        int color = intent.getIntExtra("colorOne", Color.RED);
+        deviceStatusColor.setBackgroundColor(color);
     }
 
 //    private void refreshView(Intent intent) {

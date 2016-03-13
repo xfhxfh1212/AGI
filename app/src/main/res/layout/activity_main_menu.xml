@@ -21,19 +21,21 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
-            android:text="目标号码"
+            android:text="@string/page_main_menu_target_phone_num"
             android:textSize="15sp"
             android:gravity="center_vertical"/>
         <EditText
             android:layout_width="130dp"
             android:layout_height="match_parent"
+            android:id="@+id/main_menu_target_phone_num"
             android:gravity="center"
-            android:inputType="number"
-            android:textSize="12sp"/>
+            android:inputType="phone"
+            android:textSize="15sp"/>
         <Button
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
-            android:text="保存"/>
+            android:id="@+id/main_menu_target_phone_num_save"
+            android:text="@string/page_main_menu_save"/>
     </LinearLayout>
     <GridView
         android:id="@+id/main_menu_gridView"
@@ -60,13 +62,13 @@
             android:id="@+id/main_menu_device_connnect"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="连接"
-            android:layout_marginRight="30dp"/>
+            android:text="@string/page_main_menu_device_connect"/>
         <Button
             android:id="@+id/main_menu_device_disconnect"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="断开"/>
+            android:layout_marginLeft="30dp"
+            android:text="@string/page_main_menu_device_disconnect"/>
     </LinearLayout>
     <LinearLayout
         android:id="@+id/main_menu_device_status_bar"
@@ -79,7 +81,7 @@
         <TextView
             android:layout_width="100dp"
             android:layout_height="match_parent"
-            android:text="设备状态:"
+            android:text="@string/page_status_bar_device_status"
             android:textSize="17sp"
             android:gravity="center"/>
         <TextView
@@ -87,13 +89,12 @@
             android:layout_width="100dp"
             android:layout_height="match_parent"
             android:gravity="center_vertical"
-            android:textSize="17sp"
-            android:text="未就绪"/>
+            android:textSize="17sp"/>
         <TextView
             android:layout_width="60dp"
             android:layout_height="match_parent"
             android:gravity="center"
-            android:text="AGI 1"
+            android:text="@string/page_status_bar_agi_one"
             android:textSize="17sp"/>
         <TextView
             android:id="@+id/main_menu_device_background_one"
@@ -104,7 +105,7 @@
             android:layout_width="60dp"
             android:layout_height="match_parent"
             android:gravity="center"
-            android:text="AGI 2"
+            android:text="@string/page_status_bar_agi_two"
 
             android:textSize="17sp"/>
         <TextView
