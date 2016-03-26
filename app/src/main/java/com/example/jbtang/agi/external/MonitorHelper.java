@@ -16,9 +16,9 @@ import com.example.jbtang.agi.external.service.MonitorService;
  * Created by xiang on 2016/3/9.
  */
 public class MonitorHelper {
-    private static Intent startIntent;
-    private static MonitorService mBoundService;
-    private static ServiceConnection connection = new ServiceConnection() {
+    private Intent startIntent;
+    private MonitorService mBoundService;
+    private ServiceConnection connection = new ServiceConnection() {
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
@@ -32,22 +32,30 @@ public class MonitorHelper {
             MonitorApplication.MonitorService = mBoundService;
         }
     };
-    public static void startService(Context context) {
+    public void startService(Context context) {
         MonitorApplication.IMEI = getIMEI(context);
         startIntent = new Intent(context, MonitorService.class);
         context.startService(startIntent);
-        context.bindService(startIntent, connection, 0);
+
         Log.e("test", "startService");
     }
-    public static String getIMEI(Context context) {
+    public void bindService(Context context){
+        if(startIntent == null)
+            startIntent = new Intent(context,MonitorService.class);
+        context.bindService(startIntent, connection, 0);
+    }
+    public void unbindservice(Context context){
+        context.unbindService(connection);
+    }
+    public String getIMEI(Context context) {
         TelephonyManager telephonyManager = (TelephonyManager) context
                 .getSystemService(Context.TELEPHONY_SERVICE);
         String imei = telephonyManager.getDeviceId();
         Log.e("test", "get IMEI:"+imei);
         return imei != null ? imei : "";
     }
-    public static void stopService(Context context){
-        context.unbindService(connection);
+    public void stopService(Context context){
+
         context.stopService(startIntent);
         Log.e("test", "stopService");
     }

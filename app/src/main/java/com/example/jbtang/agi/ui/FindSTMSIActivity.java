@@ -33,6 +33,7 @@ import com.example.jbtang.agi.service.FindSTMSI;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -42,6 +43,7 @@ import io.fmaster.LTEServCellMessage;
  * Created by jbtang on 11/1/2015.
  */
 public class FindSTMSIActivity extends AppCompatActivity {
+    private static final int STMSICountMaxValuePerMinute = 200;
     private boolean startToFind;
 
     private List<FindSTMSI.CountSortedInfo> countSortedInfoList;
@@ -57,21 +59,24 @@ public class FindSTMSIActivity extends AppCompatActivity {
     private TextView cellConfirmColor;
     private TextView cellRsrp;
     private TextView pciNum;
+    private MonitorHelper monitorHelper;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN);
         setContentView(R.layout.activity_find_stmsi);
 
-        countSortedInfoList = new ArrayList<>();
-        startToFind = false;
         init();
-        MonitorHelper.startService(this);
+
     }
     @Override
     protected void onDestroy() {
+        if(startToFind) {
+            FindSTMSI.getInstance().stop();
+            startToFind = false;
+        }
         unregisterReceiver(receiver);
-        MonitorHelper.stopService(this);
+        monitorHelper.unbindservice(FindSTMSIActivity.this);
         super.onDestroy();
     }
 
@@ -97,7 +102,10 @@ public class FindSTMSIActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
+
     private void init() {
+        countSortedInfoList = new ArrayList<>();
+        startToFind = false;
 
         startButton = (Button) findViewById(R.id.find_stmsi_start_button);
         stopButton = (Button) findViewById(R.id.find_stmsi_stop_button);
@@ -125,9 +133,14 @@ public class FindSTMSIActivity extends AppCompatActivity {
         startButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
+                if(startToFind)
+                    return;
+                if (DeviceManager.getInstance().getDevices().size() == 0)
+                    return;
+                Global.sendTime = new Date();
                 FindSTMSI.getInstance().start(FindSTMSIActivity.this);
                 startToFind = true;
+                startButton.setEnabled(false);
             }
         });
         stopButton.setOnClickListener(new View.OnClickListener() {
@@ -135,6 +148,7 @@ public class FindSTMSIActivity extends AppCompatActivity {
             public void onClick(View v) {
                 FindSTMSI.getInstance().stop();
                 startToFind = false;
+                startButton.setEnabled(true);
             }
         });
 
@@ -147,10 +161,14 @@ public class FindSTMSIActivity extends AppCompatActivity {
                 }
             }
         }, 1, 3, TimeUnit.SECONDS);
+        MyRunable myRunable = new MyRunable();
+        Global.ThreadPool.scheduledThreadPool.scheduleAtFixedRate(myRunable, 60, 60, TimeUnit.SECONDS);
 
         IntentFilter filter = new IntentFilter(MonitorApplication.BROAD_TO_MAIN_ACTIVITY);
         filter.addAction(MonitorApplication.BROAD_FROM_MAIN_MENU_DEVICE);
         registerReceiver(receiver, filter);
+        monitorHelper = new MonitorHelper();
+        monitorHelper.bindService(FindSTMSIActivity.this);
     }
 
     private void refresh() {
@@ -160,6 +178,8 @@ public class FindSTMSIActivity extends AppCompatActivity {
                 countSortedInfoList.clear();
                 countSortedInfoList.addAll(FindSTMSI.getInstance().getCountSortedInfoList());
                 ((CountAdapter) count.getAdapter()).notifyDataSetChanged();
+                if(DeviceManager.getInstance().getDevices().size() == 0)
+                    return;
                 if (DeviceManager.getInstance().getDevices().get(0).getWorkingStatus() == Status.DeviceWorkingStatus.NORMAL) {
                     String rsrp = String.format("%.2f",DeviceManager.getInstance().getDevices().get(0).getCellInfo().rsrp);
                     cellConfirmColor.setBackgroundColor(Color.GREEN);
@@ -181,6 +201,7 @@ public class FindSTMSIActivity extends AppCompatActivity {
 
         @Override
         public void handleMessage(Message msg) {
+
             mOuter.get().refresh();
         }
 
@@ -306,6 +327,23 @@ public class FindSTMSIActivity extends AppCompatActivity {
         }
         return true;
     }
-
+    class MyRunable implements Runnable {
+        @Override
+        public void run() {
+            if(startToFind) {
+                if (FindSTMSI.getInstance().stmsiCount < STMSICountMaxValuePerMinute) {
+                    FindSTMSI.getInstance().stmsiCount = 0;
+                } else {
+                    FindSTMSI.getInstance().stop();
+                    startToFind = false;
+                    new AlertDialog.Builder(FindSTMSIActivity.this)
+                            .setTitle("注意")
+                            .setMessage("该处STMSI过多，设备已停止!")
+                            .setPositiveButton("确定", null)
+                            .show();
+                }
+            }
+        }
+    }
 
 }

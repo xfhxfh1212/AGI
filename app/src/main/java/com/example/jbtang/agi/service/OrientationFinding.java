@@ -1,6 +1,7 @@
 package com.example.jbtang.agi.service;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
@@ -44,12 +45,13 @@ public class OrientationFinding {
     private static final Integer MAX_RSRP = -45;
     private static final Integer MIN_RSRP = -115;
     private static final double SINR_THRESHOLD = 3.0D;
+
     private static OrientationFinding instance = new OrientationFinding();
     public static final int PUCCH = 7;
     public static final int PUSCH = 5;
-    private static final int COUNT_INTERVAL = 6;
+    private static final int COUNT_INTERVAL = 10;
     private static final int RESULT_QUEUE_MAX_LEN = 25;
-
+    private Activity currentActivity;
     private myHandler handler;
     private Trigger trigger;
     private Queue<UEInfo> ueInfoQueue;
@@ -173,6 +175,7 @@ public class OrientationFinding {
     }
 
     public void start(Activity activity) {
+        currentActivity = activity;
         //DeviceManager.getInstance().getDevices().get(0).setWorkingStatus(Status.DeviceWorkingStatus.ABNORMAL);
         MessageDispatcher.getInstance().RegisterHandler(handler);
         Log.d(TAG, String.format("================== Orientation find stmsi : %s ====================", Global.TARGET_STMSI));
@@ -233,6 +236,26 @@ public class OrientationFinding {
         DeviceManager.getInstance().getDevice(globalMsg.getDeviceName()).setWorkingStatus(status);
         DeviceManager.getInstance().getDevice(globalMsg.getDeviceName()).getCellInfo().rsrp = rsrp;
         Log.e(TAG, String.format("==========status : %s, rsrp : %f ============", status.name(), rsrp) + "PCI:" + pci);
+//        if(status == Status.DeviceWorkingStatus.ABNORMAL){
+//            try {
+//                trigger.stop();
+//                DeviceManager.getInstance().getDevice(globalMsg.getDeviceName()).reboot();
+//                DeviceManager.getInstance().getDevice(globalMsg.getDeviceName()).disconnect();
+//                DeviceManager.getInstance().remove(globalMsg.getDeviceName());
+//                currentActivity.runOnUiThread(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        new AlertDialog.Builder(currentActivity)
+//                                .setTitle("注意")
+//                                .setMessage("小区驻留失败，设备正在恢复初始状态，稍后请手动连接！")
+//                                .setPositiveButton("确定", null)
+//                                .show();
+//                    }
+//                });
+//            }catch (Exception e){
+//                e.printStackTrace();
+//            }
+//        }
     }
 
     private boolean isCRSChType(long type) {
@@ -262,7 +285,8 @@ public class OrientationFinding {
         info.PUCCHRsrp = result.average(PUCCH);
         info.PUSCHRsrp = result.average(PUSCH);
         info.CellRsrp = getCellRsrp();
-        DeviceManager.getInstance().getDevices().get(0).getCellInfo().rsrp = info.CellRsrp;
+        if(DeviceManager.getInstance().getDevices().size() > 0)
+            DeviceManager.getInstance().getDevices().get(0).getCellInfo().rsrp = info.CellRsrp;
         Log.e(TAG, String.format("============ PUCCH = %f , PUSCH = %f, CELL = %f, Time = %s. ==============",
                 info.PUCCHRsrp, info.PUSCHRsrp, info.CellRsrp, info.timeStamp));
         return info;
@@ -359,9 +383,11 @@ public class OrientationFinding {
             if (info == null) {
                 return false;
             }
-            if (info.rsrp < MIN_RSRP || info.rsrp > MAX_RSRP || info.sinr < SINR_THRESHOLD) {
+            if (info.rsrp < MIN_RSRP || info.sinr < SINR_THRESHOLD) {
                 return false;
             }
+            if(info.rsrp > MAX_RSRP)
+                info.rsrp = MAX_RSRP;
             return true;
         }
 

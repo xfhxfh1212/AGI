@@ -32,7 +32,7 @@ public class MonitorService extends Service {
 
         if (openDevice()) {
             //工作线程
-            Log.d(TAG, "Service has Started!");
+            Log.e(TAG, "Service has Started!");
         } else {
             Log.e(TAG, "Service start error!");
         }
@@ -46,7 +46,7 @@ public class MonitorService extends Service {
             _DataClient = null;
         }
 
-        Log.d(TAG,"open device ...");
+        Log.d(TAG, "open device ...");
         _DataClient = new DataClient();
 
         if (_DataClient.Open(MonitorApplication.IMEI)) {
@@ -77,14 +77,16 @@ public class MonitorService extends Service {
     @Override
     public void onDestroy() {
         //close device
-        if (mNotificationManager != null)
+        if (mNotificationManager != null){
             mNotificationManager.cancel(NOTIFICATION_ID);//消除对应ID的通知
+        }
 
-        if (_DataClient != null)
+        if (_DataClient != null){
             _DataClient.Close();
+        }
 
         super.onDestroy();
-        Log.d(TAG, "onDestroy() executed");
+        Log.e(TAG, "onDestroy() executed");
     }
 
     @Override
@@ -92,7 +94,11 @@ public class MonitorService extends Service {
         return mBinder;
     }
 
-
+    @Override
+    public boolean onUnbind(Intent intent) {
+        Log.e(TAG, "onUnbind() executed");
+        return super.onUnbind(intent);
+    }
 
     /**
      * Class for clients to access.  Because we know this service always

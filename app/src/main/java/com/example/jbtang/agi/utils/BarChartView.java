@@ -21,9 +21,9 @@ import java.util.List;
 public class BarChartView {
 
     private static int margins[] = new int[]{70, 70, 70, 70};
-    private static String[] titles = new String[]{"PUCCH", "PUSCH"};
+    private static String[] titles = new String[]{"PUSCH"};
     private List<int[]> values = new ArrayList<>();
-    private static int[] colors = new int[]{Color.RED, Color.BLUE};
+    private static int[] colors = new int[]{Color.RED};
     private XYMultipleSeriesRenderer renderer;
     private Context mContext;
     private String mTitle;
@@ -34,8 +34,7 @@ public class BarChartView {
         this.renderer = new XYMultipleSeriesRenderer();
     }
 
-    public void initData(int[] pucchList, int[] puschList, List<String> option, String title) {
-        values.add(pucchList);
+    public void initData(int[] puschList, List<String> option, String title) {
         values.add(puschList);
         mTitle = title;
         this.option = option;
@@ -45,7 +44,7 @@ public class BarChartView {
         buildBarRenderer();
         setChartSettings(renderer, mTitle, "", "", 0, 6, 0, 100, Color.BLACK, Color.BLACK);
         renderer.getSeriesRendererAt(0).setDisplayBoundingPoints(true);
-        renderer.getSeriesRendererAt(1).setDisplayBoundingPoints(true);
+        //renderer.getSeriesRendererAt(1).setDisplayBoundingPoints(true);
         int size = option.size();
         for (int i = 0; i < size; i++) {
             renderer.addXTextLabel(i, option.get(i));

@@ -117,7 +117,7 @@
     <string name="page_orientation_find_stmsi">"STMSI"</string>
     <string name="page_orientation_find_start">"开始"</string>
     <string name="page_orientation_find_stop">"停止"</string>
-    <string name="page_orientation_find_result_list_title_pucch">PUCCH</string>
+    <string name="page_orientation_find_result_list_title_num">序号</string>
     <string name="page_orientation_find_result_list_title_pusch">PUSCH</string>
     <string name="page_orientation_find_result_list_title_time">Time</string>
     <string name="page_orientation_find_result_list_title_pci">PCI</string>

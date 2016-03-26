@@ -7,6 +7,7 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS_FULL"/>
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.CALL_PHONE" />
 
@@ -73,7 +74,7 @@
             android:launchMode="singleTask" />
         <activity
             android:name=".ui.LocalInfoActivity"
-            android:label="title_main_menu_cellPhone_info"
+            android:label="@string/title_main_menu_cellPhone_info"
             android:launchMode="singleTask" />
 
         <service android:name=".external.service.MonitorService" />

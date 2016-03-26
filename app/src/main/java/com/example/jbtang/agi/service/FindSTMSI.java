@@ -1,12 +1,14 @@
 package com.example.jbtang.agi.service;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.os.Handler;
 import android.os.Message;
 import android.support.annotation.NonNull;
 import android.util.Log;
 import android.util.Pair;
 import android.widget.CheckBox;
+import android.widget.Toast;
 
 import com.example.jbtang.agi.R;
 import com.example.jbtang.agi.core.Global;
@@ -43,13 +45,16 @@ public class FindSTMSI {
     private static final String TAG = "FindSTMSI";
     private static final FindSTMSI instance = new FindSTMSI();
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("HH:mm:ss");
+    private Activity currentActivity;
 
     private Map<String, CountSortedInfo> sTMSI2Count;
     private List<CountSortedInfo> countSortedInfoList;
     private myHandler handler;
     private Trigger trigger;
-
     private CheckBox filterCheckBox;
+    private Status.Service service;
+    public int stmsiCount;
+    private Date interferenceTime;
     public List<CountSortedInfo> getCountSortedInfoList() {
         countSortedInfoList.clear();
         CountSortedInfo info;
@@ -97,16 +102,20 @@ public class FindSTMSI {
     }
 
     public void start(Activity activity) {
-        //DeviceManager.getInstance().getDevices().get(0).setWorkingStatus(Status.DeviceWorkingStatus.ABNORMAL);
-
+        currentActivity = activity;
         MessageDispatcher.getInstance().RegisterHandler(handler);
+        stmsiCount = 0;
         sTMSI2Count.clear();
         countSortedInfoList.clear();
-        if(activity.getLocalClassName().equals("FindSTMSIActivity")) {
+        interferenceTime = new Date();
+        Log.e("Test", activity.getLocalClassName());
+        if(activity.getLocalClassName().equals("ui.FindSTMSIActivity")) {
             filterCheckBox = (CheckBox) activity.findViewById(R.id.find_stmsi_filter_checkbox);
-            trigger.start(activity, Status.Service.FINDSTMIS);
+            service = Status.Service.FINDSTMIS;
+            trigger.start(activity, service);
         }else {
-            trigger.start(activity, Status.Service.INTERFERENCE);
+            service = Status.Service.INTERFERENCE;
+            trigger.start(activity, service);
         }
     }
 
@@ -123,9 +132,42 @@ public class FindSTMSI {
         DeviceManager.getInstance().getDevice(globalMsg.getDeviceName()).getCellInfo().rsrp = rsrp;
         Log.e(TAG, String.format("==========status : %s, rsrp : %f ============", status.name(), rsrp));
         Log.e("cell_capture", "mu16PCI:" + msg.getMu16PCI() + " mu16EARFCN:" + msg.getMu16EARFCN() + " mu16TAC:" + msg.getMu16TAC() + " mu16Rsrp:" + msg.getMu16Rsrp() + " mu16Rsrq:" + msg.getMu16Rsrq());
+        if(status == Status.DeviceWorkingStatus.ABNORMAL){
+            try {
+                trigger.stop();
+                DeviceManager.getInstance().getDevice(globalMsg.getDeviceName()).reboot();
+                currentActivity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        new AlertDialog.Builder(currentActivity)
+                                .setTitle("注意")
+                                .setMessage("小区驻留失败，设备正在恢复初始状态，稍后请手动连接！")
+                                .setPositiveButton("确定", null)
+                                .show();
+                    }
+                });
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+        }
     }
 
     private void resolveUECaptureMsg(Global.GlobalMsg globalMsg) {
+        stmsiCount++;
+        long difTime;
+        Date currentTime = new Date();
+
+        if(service == Status.Service.FINDSTMIS) {
+            difTime = (currentTime.getTime() - Global.sendTime.getTime()) / 1000;
+            if (difTime > Global.Configuration.filterInterval) {
+                return;
+            }
+        }else {
+            difTime = (currentTime.getTime() - interferenceTime.getTime()) / 1000;
+            if(difTime < 8) {
+                return;
+            }
+        }
         MsgL2P_AG_UE_CAPTURE_IND msg = new MsgL2P_AG_UE_CAPTURE_IND(globalMsg.getBytes());
         String stmsi = "";
         byte mec = 0;
@@ -145,11 +187,14 @@ public class FindSTMSI {
                     .append(padLeft(String.format("%X", stmsiBytes[3]), "0", 2))
                     .toString();
         }
+
+        Log.e(TAG, String.format("---------Find STMSI :%s Time :%d Type :%d-----------", stmsi,difTime ,mu8EstCause));
+        if(stmsi.equals(""))
+            return;
         if (!(mu8EstCause == 0x02)) {
             return;
         }
-        Log.d(TAG, String.format("---------Find STMSI :  %s -----------", stmsi));
-        if(filterCheckBox != null && filterCheckBox.isChecked() && Global.filterStmsiMap.containsKey(stmsi))
+        if(service == Status.Service.FINDSTMIS && filterCheckBox.isChecked() && Global.filterStmsiMap.containsKey(stmsi))
             return;
         int count = sTMSI2Count.containsKey(stmsi) ? Integer.valueOf(sTMSI2Count.get(stmsi).count) : 0;
         CountSortedInfo info = new CountSortedInfo();

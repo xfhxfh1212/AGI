@@ -9,6 +9,7 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.support.v7.app.AppCompatActivity;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.widget.TextView;
@@ -26,13 +27,14 @@ import java.util.concurrent.TimeUnit;
 import io.fmaster.LTEPwrInfoMessage;
 import io.fmaster.LTEServCellMessage;
 
-public class LocalInfoActivity extends Activity {
+public class LocalInfoActivity extends AppCompatActivity {
     private TextView myStmsiTextView;
     private TextView myErfcnTextView;
     private TextView myPciTextView;
     private TextView myTaiTextView;
     private TextView myRsrpTextView;
     private TextView mySinrTextView;
+    private MonitorHelper monitorHelper;
     //private Intent startIntent;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,7 +42,7 @@ public class LocalInfoActivity extends Activity {
         setContentView(R.layout.activity_local_info);
         init();
         //startService();
-        MonitorHelper.startService(this);
+
     }
 
     @Override
@@ -48,7 +50,7 @@ public class LocalInfoActivity extends Activity {
         unregisterReceiver(receiver);
 //        unbindService(connection);
 //        stopService(startIntent);
-        MonitorHelper.stopService(this);
+        monitorHelper.unbindservice(LocalInfoActivity.this);
         Log.e("Test", "LocalInfoActivity onDestroy");
         super.onDestroy();
     }
@@ -62,6 +64,8 @@ public class LocalInfoActivity extends Activity {
         IntentFilter filter = new IntentFilter(MonitorApplication.BROAD_TO_LOCAL_INFO_ACTIVITY);
         filter.addAction(MonitorApplication.BROAD_TO_MAIN_ACTIVITY);
         registerReceiver(receiver, filter);
+        monitorHelper = new MonitorHelper();
+        monitorHelper.bindService(LocalInfoActivity.this);
     }
     private MonitorService mBoundService;
 //    private void startService() {

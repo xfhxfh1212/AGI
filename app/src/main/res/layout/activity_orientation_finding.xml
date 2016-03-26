@@ -135,7 +135,7 @@
             android:layout_width="0dp"
             android:layout_height="0dp"
             android:gravity="center"
-            android:text="@string/page_orientation_find_result_list_title_pucch"
+            android:text="@string/page_orientation_find_result_list_title_num"
             app:layout_heightPercent="100%"
             app:layout_widthPercent="30%" />
 

@@ -72,6 +72,7 @@ public class MainMenuActivity extends AppCompatActivity {
     private ConfigurationDBManager cmgr;
     private ConfigurationDAO dao;
     private myBroadcastReceiver broadcastReceiver;
+    private MonitorHelper monitorHelper;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -140,19 +141,23 @@ public class MainMenuActivity extends AppCompatActivity {
                 }
             }
         });
-
-        broadcastReceiver = new myBroadcastReceiver();
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(MonitorApplication.BROAD_FROM_MAIN_MENU_DEVICE);
-        filter.addAction(MonitorApplication.BROAD_FROM_CONFIGURATION_ACTIVITY);
-        registerReceiver(broadcastReceiver, filter);
-
+        try {
+            broadcastReceiver = new myBroadcastReceiver();
+            IntentFilter filter = new IntentFilter();
+            filter.addAction(MonitorApplication.BROAD_FROM_MAIN_MENU_DEVICE);
+            filter.addAction(MonitorApplication.BROAD_FROM_CONFIGURATION_ACTIVITY);
+            registerReceiver(broadcastReceiver, filter);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
         Global.ThreadPool.scheduledThreadPool.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
                 refreshDeviceStatusBar();
             }
-        }, 1, 3, TimeUnit.SECONDS);
+        }, 1, 1, TimeUnit.SECONDS);
+        monitorHelper = new MonitorHelper();
+        monitorHelper.startService(this);
     }
 
     @Override
@@ -187,8 +192,7 @@ public class MainMenuActivity extends AppCompatActivity {
     }
     @Override
     public void onDestroy() {
-//        unbindService(connection);
-//        stopService(startIntent);
+        monitorHelper.stopService(this);
         super.onDestroy();
     }
     @Override
@@ -246,10 +250,13 @@ public class MainMenuActivity extends AppCompatActivity {
             for(MonitorDevice device:devices){
                 try {
                     device.connect();
-                    DeviceManager.getInstance().add(device);
+                    //Thread.sleep(1000);
+                    if(device.isConnected())
+                        DeviceManager.getInstance().add(device);
                 } catch (Exception e) {
                 }
             }
+            Log.e("Test",String.valueOf(DeviceManager.getInstance().getDevices().size()));
         }
     }
     class disconBtnOnclickListener implements View.OnClickListener{

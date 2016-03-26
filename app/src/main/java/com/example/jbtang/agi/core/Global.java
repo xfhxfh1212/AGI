@@ -3,6 +3,7 @@ package com.example.jbtang.agi.core;
 import com.example.jbtang.agi.dao.configuration.ConfigurationDBManager;
 import com.example.jbtang.agi.device.Device;
 
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -71,4 +72,5 @@ public class Global {
 
     public static String TARGET_STMSI;
     public static Map<String,String> filterStmsiMap = new HashMap<>();
+    public static Date sendTime;
 }

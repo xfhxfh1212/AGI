@@ -11,6 +11,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.annotation.NonNull;
+import android.support.v7.app.AppCompatActivity;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -43,7 +44,7 @@ import java.util.concurrent.TimeUnit;
 
 import io.fmaster.LTEServCellMessage;
 
-public class InterferenceActivity extends Activity {
+public class InterferenceActivity extends AppCompatActivity {
     private boolean startToFind;
 
     private List<FindSTMSI.CountSortedInfo> countSortedInfoList;
@@ -59,6 +60,7 @@ public class InterferenceActivity extends Activity {
     private TextView cellConfirmColor;
     private TextView cellRsrp;
     private TextView pciNum;
+    private MonitorHelper monitorHelper;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -68,12 +70,12 @@ public class InterferenceActivity extends Activity {
         countSortedInfoList = new ArrayList<>();
         startToFind = false;
         init();
-        MonitorHelper.startService(this);
+
     }
     @Override
     protected void onDestroy() {
         unregisterReceiver(receiver);
-        MonitorHelper.stopService(this);
+        monitorHelper.unbindservice(InterferenceActivity.this);
         super.onDestroy();
     }
 
@@ -120,9 +122,13 @@ public class InterferenceActivity extends Activity {
         startButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
+                if(startToFind)
+                    return;
+                if(DeviceManager.getInstance().getDevices().size() == 0)
+                    return;
                 FindSTMSI.getInstance().start(InterferenceActivity.this);
                 startToFind = true;
+                startButton.setEnabled(false);
             }
         });
         stopButton.setOnClickListener(new View.OnClickListener() {
@@ -130,6 +136,7 @@ public class InterferenceActivity extends Activity {
             public void onClick(View v) {
                 FindSTMSI.getInstance().stop();
                 startToFind = false;
+                startButton.setEnabled(true);
             }
         });
 
@@ -146,6 +153,8 @@ public class InterferenceActivity extends Activity {
         IntentFilter filter = new IntentFilter(MonitorApplication.BROAD_TO_MAIN_ACTIVITY);
         filter.addAction(MonitorApplication.BROAD_FROM_MAIN_MENU_DEVICE);
         registerReceiver(receiver, filter);
+        monitorHelper = new MonitorHelper();
+        monitorHelper.bindService(InterferenceActivity.this);
     }
 
     private void refresh() {
@@ -155,6 +164,8 @@ public class InterferenceActivity extends Activity {
                 countSortedInfoList.clear();
                 countSortedInfoList.addAll(FindSTMSI.getInstance().getCountSortedInfoList());
                 ((CountAdapter) count.getAdapter()).notifyDataSetChanged();
+                if(DeviceManager.getInstance().getDevices().size() == 0)
+                    return;
                 if (DeviceManager.getInstance().getDevices().get(0).getWorkingStatus() == Status.DeviceWorkingStatus.NORMAL) {
                     String rsrp = String.format("%.2f",DeviceManager.getInstance().getDevices().get(0).getCellInfo().rsrp);
                     cellConfirmColor.setBackgroundColor(Color.GREEN);
@@ -280,10 +291,23 @@ public class InterferenceActivity extends Activity {
      */
 
     private void saveToNext() {
-        if(filterCount.getText().toString().matches("^[0-9]*$")) {
+        if(validateFilterCount()) {
             saveFilter();
             Intent intent = new Intent(this, MainMenuActivity.class);
             startActivity(intent);
+        }
+    }
+    private boolean validateFilterCount(){
+        String countStr = filterCount.getText().toString();
+        if(!countStr.isEmpty()&& countStr.matches("^[0-9]*$"))
+            return true;
+        else {
+            new AlertDialog.Builder(this)
+                    .setTitle("非法输入")
+                    .setMessage("请输入正确的干扰过滤门限!")
+                    .setPositiveButton("确定", null)
+                    .show();
+            return false;
         }
     }
     private void saveFilter(){

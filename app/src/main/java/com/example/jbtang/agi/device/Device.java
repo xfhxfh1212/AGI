@@ -16,6 +16,8 @@ import com.example.jbtang.agi.messages.base.MsgTypes;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
+import java.util.Date;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Base device class
@@ -30,6 +32,8 @@ public class Device {
     protected Status.DeviceStatus status;
     private InputStream ackIn;
     private InputStream dataIn;
+    private Date receiveTime;
+    private Date currentTime;
 
     private static final int Data_RECEIVE_BUFFER_SIZE = 10240;
     private static final int Message_RECEIVE_BUFFER_SIZE = 256;
@@ -61,6 +65,7 @@ public class Device {
         this.dataPort = dataPort;
         this.messagePort = messagePort;
         this.status = Status.DeviceStatus.DISCONNECTED;
+
     }
 
     public void connect() throws Exception {
@@ -73,6 +78,9 @@ public class Device {
             Thread.sleep(200);
             messageReceive();
             dataReceive();
+            statusCheck();
+            this.currentTime = new Date();
+            this.receiveTime = new Date();
         }
         if (status == Status.DeviceStatus.DISCONNECTED) {
             send(GetFrequentlyUsedMsg.getDeviceStateMsg);
@@ -89,6 +97,24 @@ public class Device {
             Thread.sleep(200);
         }
         dispose();
+    }
+
+    private void statusCheck() throws Exception{
+        Global.ThreadPool.scheduledThreadPool.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                currentTime = new Date();
+                long time = (currentTime.getTime() - receiveTime.getTime())/1000;
+                if(time > 10) {
+                    try {
+                        disconnect();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    DeviceManager.getInstance().remove(name);
+                }
+            }
+        },3,3, TimeUnit.SECONDS);
     }
 
     public void send(byte[] bytes) {
@@ -126,12 +152,27 @@ public class Device {
             public void run() {
                 try {
                     byte[] buffer = new byte[Message_RECEIVE_BUFFER_SIZE];
-                    while (ackIn.read(buffer) != -1) {
+                    while (ackIn.read(buffer, 0, MsgHeader.byteArrayLen) != -1) {
+//                        int headerReadLen = ackIn.read(buffer, 0, MsgHeader.byteArrayLen);
+//                        while (headerReadLen < 12){
+//                            headerReadLen += ackIn.read(buffer, headerReadLen, 12 - headerReadLen);
+//                        }
                         MsgHeader header = new MsgHeader(MsgSendHelper.getSubByteArray(buffer, 0, MsgHeader.byteArrayLen));
                         changeStatus(header.getMsgType());
+                        int bodyCount = header.getMsgLen() * 4;
+                        if(ackIn.read(buffer, 12, bodyCount) == -1){
+                            return;
+                        }
+//                        int bodyReadLen = ackIn.read(buffer, 12, bodyCount);
+//                        while (bodyReadLen < bodyCount){
+//                            bodyReadLen += ackIn.read(buffer, bodyReadLen, bodyCount - bodyReadLen);
+//                        }
+                        int messageLen = bodyCount + 12;
+                        byte[] dataBuffer = MsgSendHelper.getSubByteArray(buffer, 0, messageLen);
                         Log.d(TAG, "Status : -----------" + status.name());
-                        Log.d(TAG, String.format("Message type: %x", header.getMsgType()));
-                        Log.d(TAG, "Receive from message port : " + convertByteToString(buffer));
+                        Log.d(TAG, String.format("Message type: %x length: %d", header.getMsgType(), messageLen));
+                        Log.d(TAG, "Receive form message port : " + convertByteToString(dataBuffer));
+                        receiveTime = new Date();
                         if (header.getMsgType() == 0xffff) {
                             Log.d(TAG, "strange ACK!");
                             throw new IOException();
@@ -139,6 +180,7 @@ public class Device {
                     }
                 } catch (IOException e) {
                     Log.e(TAG, "Message receive exception.", e);
+                }finally{
                     dispose();
                 }
             }
@@ -155,23 +197,39 @@ public class Device {
             public void run() {
                 try {
                     byte[] buffer = new byte[Data_RECEIVE_BUFFER_SIZE];
-                    while (dataIn.read(buffer) != -1) {
+                    while (dataIn.read(buffer, 0, MsgHeader.byteArrayLen) != -1) {
+//                        int headerReadLen = dataIn.read(buffer, 0, MsgHeader.byteArrayLen);
+//                        while (headerReadLen < 12){
+//                            headerReadLen += dataIn.read(buffer, headerReadLen, 12 - headerReadLen);
+//                        }
                         MsgHeader header = new MsgHeader(MsgSendHelper.getSubByteArray(buffer, 0, MsgHeader.byteArrayLen));
                         changeStatus(header.getMsgType());
+                        int bodyCount = header.getMsgLen() * 4;
+                        if(dataIn.read(buffer, 12, bodyCount) == -1)
+                            return;
+
+//                        while (bodyReadLen < bodyCount){
+//                            bodyReadLen += dataIn.read(buffer, bodyReadLen, bodyCount - bodyReadLen);
+//                        }
+                        int messageLen = bodyCount + 12;
+                        byte[] dataBuffer = MsgSendHelper.getSubByteArray(buffer, 0, messageLen);
                         Log.d(TAG, "Status : -----------" + status.name());
-                        Log.d(TAG, String.format("Message type: %x", header.getMsgType()));
-                        Log.d(TAG, "Receive from data port : " + convertByteToString(buffer));
+                        Log.d(TAG, String.format("Message type: %x Length: %d", header.getMsgType(), messageLen));
+                        Log.d(TAG, "Receive form data port : " + convertByteToString(dataBuffer));
+                        receiveTime = new Date();
                         if (header.getMsgType() != 0x8002) {
-                            MessageDispatcher.getInstance().Dispatch(new Global.GlobalMsg(name, header.getMsgType(), buffer));
+                            MessageDispatcher.getInstance().Dispatch(new Global.GlobalMsg(name, header.getMsgType(), dataBuffer));
                         }
                     }
                 } catch (IOException e) {
                     Log.e(TAG, "Data receive exception.", e);
+                }finally {
                     dispose();
                 }
             }
         });
     }
+
 
     private void changeStatus(int msgType) {
         switch (status) {

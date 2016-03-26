@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -56,8 +57,8 @@ public class OrientationFindingActivity extends AppCompatActivity {
     private TextView cellConfirmColor;
     private TextView cellRsrp;
     private TextView pciNum;
-
-    public static List<String> options = Arrays.asList("", "一", "二", "三", "四");
+    private MonitorHelper monitorHelper;
+    public static List<String> options = Arrays.asList("", "", "", "", "", "");
     private BarChartView view;
 
     @Override
@@ -69,13 +70,18 @@ public class OrientationFindingActivity extends AppCompatActivity {
         OrientationFinding.getInstance().targetStmsi = Global.TARGET_STMSI;
         orientationInfoList = new ArrayList<>();
         init();
-        MonitorHelper.startService(this);
+
     }
 
     @Override
     protected void onDestroy() {
+        if(startToFind){
+            OrientationFinding.getInstance().stop();
+            startToFind = false;
+        }
         unregisterReceiver(receiver);
-        MonitorHelper.stopService(this);
+        monitorHelper.unbindservice(OrientationFindingActivity.this);
+        Log.e("Orientation","orientation is onDestory");
         super.onDestroy();
     }
 
@@ -122,10 +128,15 @@ public class OrientationFindingActivity extends AppCompatActivity {
         startButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                if(startToFind)
+                    return;
+                if (DeviceManager.getInstance().getDevices().size() == 0)
+                    return;
                 OrientationFinding.getInstance().start(OrientationFindingActivity.this);
                 startToFind = true;
                 orientationInfoList.clear();
                 refreshBarChart();
+                startButton.setEnabled(false);
             }
         });
         stopButton.setOnClickListener(new View.OnClickListener() {
@@ -133,6 +144,7 @@ public class OrientationFindingActivity extends AppCompatActivity {
             public void onClick(View v) {
                 OrientationFinding.getInstance().stop();
                 startToFind = false;
+                startButton.setEnabled(true);
             }
         });
 
@@ -142,6 +154,8 @@ public class OrientationFindingActivity extends AppCompatActivity {
         registerReceiver(receiver, filter);
 
         OrientationFinding.getInstance().setOutHandler(new myHandler(this));
+        monitorHelper = new MonitorHelper();
+        monitorHelper.bindService(OrientationFindingActivity.this);
     }
 
     private void refresh(String type) {
@@ -172,15 +186,18 @@ public class OrientationFindingActivity extends AppCompatActivity {
         for (; to > from; to--, rsrpIndex--) {
             pucchList[rsrpIndex] = orientationInfoList.get(to - 1).getStandardPucch();
             puschList[rsrpIndex] = orientationInfoList.get(to - 1).getStandardPusch();
+            options.set(rsrpIndex + 1,orientationInfoList.get(to - 1).timeStamp);
         }
         for (; to > from; to--, rsrpIndex--) {
             pucchList[rsrpIndex] = 0;
             puschList[rsrpIndex] = 0;
         }
-        view.initData(pucchList, puschList, options, "功率图");
+        view.initData(puschList, options, "功率图");
         resultGraphLayout.addView(view.getBarChartView());
     }
     private void refreshCellStatusBar(){
+        if(DeviceManager.getInstance().getDevices().size() == 0)
+            return;
         if(DeviceManager.getInstance().getDevices().get(0).getWorkingStatus()== Status.DeviceWorkingStatus.NORMAL){
             String rsrp = String.format("%.2f",DeviceManager.getInstance().getDevices().get(0).getCellInfo().rsrp);
             cellConfirmColor.setBackgroundColor(Color.GREEN);
@@ -215,7 +232,7 @@ public class OrientationFindingActivity extends AppCompatActivity {
      * for ListView
      */
     private final class ViewHolder {
-        public TextView pucch;
+        public TextView num;
         public TextView pusch;
         public TextView time;
     }
@@ -251,7 +268,7 @@ public class OrientationFindingActivity extends AppCompatActivity {
             if (convertView == null) {
                 convertView = mInflater.inflate(R.layout.orientation_finding_list_item, null);
                 holder = new ViewHolder();
-                holder.pucch = (TextView) convertView.findViewById(R.id.orientation_find_list_item_pucch);
+                holder.num = (TextView) convertView.findViewById(R.id.orientation_find_list_item_num);
                 holder.pusch = (TextView) convertView.findViewById(R.id.orientation_find_list_item_pusch);
                 holder.time = (TextView) convertView.findViewById(R.id.orientation_find_list_item_time);
                 convertView.setTag(holder);
@@ -259,7 +276,7 @@ public class OrientationFindingActivity extends AppCompatActivity {
                 holder = (ViewHolder) convertView.getTag();
             }
 
-            holder.pucch.setText(String.format("%.2f", orientationInfoList.get(position).PUCCHRsrp));
+            holder.num.setText(String.valueOf(position));
             holder.pusch.setText(String.format("%.2f", orientationInfoList.get(position).PUSCHRsrp));
             holder.time.setText(orientationInfoList.get(position).timeStamp);
             return convertView;

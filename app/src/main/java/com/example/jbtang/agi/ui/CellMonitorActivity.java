@@ -1,20 +1,14 @@
 package com.example.jbtang.agi.ui;
 
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.ServiceConnection;
 import android.graphics.Color;
-import android.os.IBinder;
-import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.telephony.TelephonyManager;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -36,7 +30,6 @@ import com.example.jbtang.agi.device.DeviceManager;
 import com.example.jbtang.agi.device.MonitorDevice;
 import com.example.jbtang.agi.external.MonitorApplication;
 import com.example.jbtang.agi.external.MonitorHelper;
-import com.example.jbtang.agi.external.service.MonitorService;
 import com.example.jbtang.agi.service.CellMonitor;
 
 
@@ -71,7 +64,7 @@ public class CellMonitorActivity extends AppCompatActivity {
     private TextView deviceStatusText;
     private TextView deviceColorOne;
     private TextView deviceColorTwo;
-
+    private MonitorHelper monitorHelper;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -81,6 +74,16 @@ public class CellMonitorActivity extends AppCompatActivity {
         initData();
         startService();
     }
+
+    @Override
+    public void onDestroy() {
+        unregisterReceiver(receiver);
+        //unbindService(connection);
+        //stopService(startIntent);
+        monitorHelper.unbindservice(CellMonitorActivity.this);
+        super.onDestroy();
+    }
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -172,12 +175,10 @@ public class CellMonitorActivity extends AppCompatActivity {
 //    };
 
     private void startService() {
-        MonitorApplication.IMEI = getIMEI(this);
-        startIntent = new Intent(this, MonitorService.class);
-        //startService(startIntent);
-        //Intent intent=new Intent(this,MonitorService.class);
-        //bindService(startIntent, connection, 0);
-        MonitorHelper.startService(this);
+        //MonitorApplication.IMEI = getIMEI(this);
+        //startIntent = new Intent(this, MonitorService.class);
+        monitorHelper = new MonitorHelper();
+        monitorHelper.bindService(CellMonitorActivity.this);
         Global.ThreadPool.scheduledThreadPool.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
@@ -185,6 +186,11 @@ public class CellMonitorActivity extends AppCompatActivity {
                 cellInfoList = new ArrayList<>(updatingCellInfoList);
                 for (CellInfo info : cellInfoList) {
                     if (info.isChecked) {
+                        monitorCellList.add(info);
+                    }
+                }
+                for(CellInfo info : monitorCellSet){
+                    if(!monitorCellList.contains(info)){
                         monitorCellList.add(info);
                     }
                 }
@@ -199,14 +205,7 @@ public class CellMonitorActivity extends AppCompatActivity {
         }, 1, 1, TimeUnit.SECONDS);
     }
 
-    @Override
-    public void onDestroy() {
-        unregisterReceiver(receiver);
-        //unbindService(connection);
-        //stopService(startIntent);
-        MonitorHelper.stopService(this);
-        super.onDestroy();
-    }
+
 
 
     public static String getIMEI(Context context) {
