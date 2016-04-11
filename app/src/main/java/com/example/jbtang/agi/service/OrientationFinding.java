@@ -386,8 +386,9 @@ public class OrientationFinding {
             if (info.rsrp < MIN_RSRP || info.sinr < SINR_THRESHOLD) {
                 return false;
             }
-            if(info.rsrp > MAX_RSRP)
+            if(info.rsrp > MAX_RSRP) {
                 info.rsrp = MAX_RSRP;
+            }
             return true;
         }
 

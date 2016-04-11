@@ -22,6 +22,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.example.jbtang.agi.R;
 import com.example.jbtang.agi.core.Global;
@@ -43,7 +44,7 @@ import io.fmaster.LTEServCellMessage;
  * Created by jbtang on 11/1/2015.
  */
 public class FindSTMSIActivity extends AppCompatActivity {
-    private static final int STMSICountMaxValuePerMinute = 200;
+    private static final int STMSICountMaxValuePerMinute = 400;
     private boolean startToFind;
 
     private List<FindSTMSI.CountSortedInfo> countSortedInfoList;
@@ -60,6 +61,10 @@ public class FindSTMSIActivity extends AppCompatActivity {
     private TextView cellRsrp;
     private TextView pciNum;
     private MonitorHelper monitorHelper;
+
+    private TextView sumCountText;
+    private TextView nullCountText;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -119,6 +124,9 @@ public class FindSTMSIActivity extends AppCompatActivity {
 
         targetPhone.setText(Global.Configuration.targetPhoneNum);
 
+        sumCountText = (TextView) findViewById(R.id.find_stmsi_sum_count_text);
+        nullCountText = (TextView) findViewById(R.id.find_stmsi_null_count_text);
+
         count = (ListView) findViewById(R.id.find_stmsi_count_listView);
         CountAdapter countAdapter = new CountAdapter(this);
         count.setAdapter(countAdapter);
@@ -135,8 +143,14 @@ public class FindSTMSIActivity extends AppCompatActivity {
             public void onClick(View v) {
                 if(startToFind)
                     return;
-                if (DeviceManager.getInstance().getDevices().size() == 0)
+                if (DeviceManager.getInstance().getDevices().size() == 0) {
+                    Toast.makeText(FindSTMSIActivity.this,"没有可用设备！",Toast.LENGTH_LONG).show();
                     return;
+                }
+                if(Global.Configuration.smsType == Status.TriggerSMSType.INSIDE && Global.Configuration.targetPhoneNum.isEmpty()){
+                    Toast.makeText(FindSTMSIActivity.this,"目标号码为空！",Toast.LENGTH_LONG).show();
+                    return;
+                }
                 Global.sendTime = new Date();
                 FindSTMSI.getInstance().start(FindSTMSIActivity.this);
                 startToFind = true;
@@ -161,8 +175,8 @@ public class FindSTMSIActivity extends AppCompatActivity {
                 }
             }
         }, 1, 3, TimeUnit.SECONDS);
-        MyRunable myRunable = new MyRunable();
-        Global.ThreadPool.scheduledThreadPool.scheduleAtFixedRate(myRunable, 60, 60, TimeUnit.SECONDS);
+        MyRunnable myRunnable = new MyRunnable();
+        Global.ThreadPool.scheduledThreadPool.scheduleAtFixedRate(myRunnable, 120, 120, TimeUnit.SECONDS);
 
         IntentFilter filter = new IntentFilter(MonitorApplication.BROAD_TO_MAIN_ACTIVITY);
         filter.addAction(MonitorApplication.BROAD_FROM_MAIN_MENU_DEVICE);
@@ -178,8 +192,11 @@ public class FindSTMSIActivity extends AppCompatActivity {
                 countSortedInfoList.clear();
                 countSortedInfoList.addAll(FindSTMSI.getInstance().getCountSortedInfoList());
                 ((CountAdapter) count.getAdapter()).notifyDataSetChanged();
-                if(DeviceManager.getInstance().getDevices().size() == 0)
+                sumCountText.setText(String.valueOf(FindSTMSI.getInstance().sumCount));
+                nullCountText.setText(String.valueOf(FindSTMSI.getInstance().nullCount));
+                if(DeviceManager.getInstance().getDevices().size() == 0) {
                     return;
+                }
                 if (DeviceManager.getInstance().getDevices().get(0).getWorkingStatus() == Status.DeviceWorkingStatus.NORMAL) {
                     String rsrp = String.format("%.2f",DeviceManager.getInstance().getDevices().get(0).getCellInfo().rsrp);
                     cellConfirmColor.setBackgroundColor(Color.GREEN);
@@ -327,7 +344,7 @@ public class FindSTMSIActivity extends AppCompatActivity {
         }
         return true;
     }
-    class MyRunable implements Runnable {
+    class MyRunnable implements Runnable {
         @Override
         public void run() {
             if(startToFind) {
@@ -336,11 +353,18 @@ public class FindSTMSIActivity extends AppCompatActivity {
                 } else {
                     FindSTMSI.getInstance().stop();
                     startToFind = false;
-                    new AlertDialog.Builder(FindSTMSIActivity.this)
-                            .setTitle("注意")
-                            .setMessage("该处STMSI过多，设备已停止!")
-                            .setPositiveButton("确定", null)
-                            .show();
+                    FindSTMSIActivity.this.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            startButton.setEnabled(true);
+                            new AlertDialog.Builder(FindSTMSIActivity.this)
+                                    .setTitle("注意")
+                                    .setMessage("该处STMSI过多，设备已停止!")
+                                    .setPositiveButton("确定", null)
+                                    .show();
+                        }
+                    });
+
                 }
             }
         }

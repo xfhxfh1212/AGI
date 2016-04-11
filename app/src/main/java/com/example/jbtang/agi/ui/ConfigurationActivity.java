@@ -54,7 +54,7 @@ public class ConfigurationActivity extends AppCompatActivity {
     private RadioButton insideSilent;
     private EditText triggerInterval;
     private EditText filterInterval;
-    private EditText receivingAntennaNum;
+    private EditText silenceTimer;
     private EditText totalTriggerCount;
     private EditText SMSCenter;
     private ConfigurationDBManager cmgr;
@@ -64,7 +64,7 @@ public class ConfigurationActivity extends AppCompatActivity {
     private static final int DEFAULT_TRIGGER_INTERVAL_PHONE_MIN = 2;
     private static final int DEFAULT_TRIGGER_INTERVAL_PHONE_MAX = 10;
     private static final int DEFAULT_SMS_FILTER_INTERVAL_MIN = 5;
-    private static final int DEFAULT_SMS_FILTER_INTERVAL_MAX = 10;
+    private static final int DEFAULT_SMS_FILTER_INTERVAL_MAX = 15;
     private static final int DEFAULT_SILENCECHECKTIME = 80;
     private static final int DEFAULT_RECEIVINGANTENNANUM = 2;
     private static final int DEFAULT_TOTAL_TRIGGER_COUNT = 30;
@@ -112,6 +112,9 @@ public class ConfigurationActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
+        for(MonitorDevice device : devices){
+            device.release();
+        }
         super.onDestroy();
         cmgr.closeDB();
         dmgr.closeDB();
@@ -346,7 +349,7 @@ public class ConfigurationActivity extends AppCompatActivity {
         insideSilent = (RadioButton) findViewById(R.id.system_configure_trigger_sms_inside_silent);
         triggerInterval = (EditText) findViewById(R.id.system_configure_trigger_interval);
         filterInterval = (EditText) findViewById(R.id.system_configure_filter_threshold);
-        receivingAntennaNum = (EditText) findViewById(R.id.system_configure_receiving_antenna_count);
+        silenceTimer = (EditText) findViewById(R.id.system_configure_silence_timer);
         totalTriggerCount = (EditText) findViewById(R.id.system_configure_trigger_max);
         SMSCenter = (EditText) findViewById(R.id.system_configure_SMS_center);
         cmgr = new ConfigurationDBManager(this);
@@ -415,7 +418,7 @@ public class ConfigurationActivity extends AppCompatActivity {
             filterInterval.setText(String.valueOf(dao.filterInterval));
         }
 
-        receivingAntennaNum.setText(String.valueOf(dao == null ? DEFAULT_RECEIVINGANTENNANUM : dao.receivingAntennaNum));
+        silenceTimer.setText(String.valueOf(dao == null ? DEFAULT_SILENCECHECKTIME : dao.silenceCheckTimer));
         totalTriggerCount.setText(String.valueOf(dao == null ? DEFAULT_TOTAL_TRIGGER_COUNT : dao.totalTriggerCount));
         SMSCenter.setText(dao == null ? "" : dao.smsCenter);
     }
@@ -454,7 +457,7 @@ public class ConfigurationActivity extends AppCompatActivity {
                 || !(SMSInside.isChecked() || SMSOutside.isChecked())
                 || !(insideSilent.isChecked() || insideNormal.isChecked())
                 || filterInterval.getText().toString().isEmpty()
-                || receivingAntennaNum.getText().toString().isEmpty()
+                || silenceTimer.getText().toString().isEmpty()
                 || totalTriggerCount.getText().toString().isEmpty()) {
             throw new IllegalArgumentException("参数不可为空!");
         }
@@ -483,8 +486,8 @@ public class ConfigurationActivity extends AppCompatActivity {
         Global.Configuration.insideSMSType = insideNormal.isChecked() ? Status.InsideSMSType.NORMAL : Status.InsideSMSType.SILENT;
         Global.Configuration.triggerInterval = Integer.parseInt(triggerInterval.getText().toString());
         Global.Configuration.filterInterval = Integer.parseInt(filterInterval.getText().toString());
-        Global.Configuration.silenceCheckTimer = DEFAULT_SILENCECHECKTIME;
-        Global.Configuration.receivingAntennaNum = Integer.parseInt(receivingAntennaNum.getText().toString());
+        Global.Configuration.silenceCheckTimer = Integer.parseInt(silenceTimer.getText().toString());
+        Global.Configuration.receivingAntennaNum = DEFAULT_RECEIVINGANTENNANUM;
         Global.Configuration.triggerTotalCount = Integer.parseInt(totalTriggerCount.getText().toString());
         Global.Configuration.smsCenter = SMSCenter.getText().toString();
     }

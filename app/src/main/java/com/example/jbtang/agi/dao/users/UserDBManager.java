@@ -20,19 +20,26 @@ public class UserDBManager {
     public UserDBManager(Context context) {
         helper = new UserDBHelper(context);
         db = helper.getWritableDatabase();
+        db.execSQL("CREATE TABLE IF NOT EXISTS " + UserDBHelper.TABLE_NAME +
+                "(name TEXT PRIMARY KEY, password TEXT, count TEXT)");
     }
 
     public void add(List<User> users) {
         db.beginTransaction();
         try {
             for (User user : users) {
-                db.execSQL("INSERT INTO " + UserDBHelper.TABLE_NAME + " VALUES(?, ?)",
-                        new Object[]{user.name, user.password});
+
+                db.execSQL("INSERT INTO " + UserDBHelper.TABLE_NAME + " VALUES(?, ?, ?)",
+                        new Object[]{user.name, user.password, user.count});
             }
             db.setTransactionSuccessful();
         } finally {
             db.endTransaction();
         }
+    }
+    public void clear(){
+        String sql = "DELETE FROM " + UserDBHelper.TABLE_NAME;
+        db.execSQL(sql);
     }
 
     private void updateByField(String field, String key, String value) {
@@ -47,6 +54,10 @@ public class UserDBManager {
 
     public void updatePwd(String name, String newPwd) {
         updateByField("password", name, newPwd);
+    }
+
+    public void updateCount(String name, String newCount){
+        updateByField("count", name, newCount);
     }
 
     private int deleteByField(String field, String value) {
@@ -90,14 +101,15 @@ public class UserDBManager {
     }
 
     public List<User> listDB() {
-        String sql = "SELECT name, password FROM " + UserDBHelper.TABLE_NAME;
+        String sql = "SELECT name, password, count FROM " + UserDBHelper.TABLE_NAME;
 
         final Cursor c = db.rawQuery(sql, new String[]{});
         List<User> users = new ArrayList<>();
         while (c.moveToNext()) {
             String name = c.getString(c.getColumnIndex("name"));
             String pwd = c.getString(c.getColumnIndex("password"));
-            User user = new User(name, pwd);
+            String count = c.getString(c.getColumnIndex("count"));
+            User user = new User(name, pwd, count);
             users.add(user);
         }
         c.close();
@@ -115,6 +127,6 @@ public class UserDBManager {
 
     public void createTable() {
         db.execSQL("CREATE TABLE IF NOT EXISTS " + UserDBHelper.TABLE_NAME +
-                "(name TEXT PRIMARY KEY, password TEXT)");
+                "(name TEXT PRIMARY KEY, password TEXT, count TEXT)");
     }
 }

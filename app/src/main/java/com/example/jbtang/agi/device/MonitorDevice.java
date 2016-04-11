@@ -38,7 +38,7 @@ public class MonitorDevice extends Device {
     private Status.BoardType type;
     private Status.DeviceWorkingStatus workingStatus;
     private Status.PingResult pingStatus;
-    private AsyncTask task;
+    private boolean pingStart;
 
     public Status.PingResult getPingStatus() {
         return pingStatus;
@@ -70,7 +70,10 @@ public class MonitorDevice extends Device {
         this.type = type;
         this.workingStatus = Status.DeviceWorkingStatus.ABNORMAL;
         this.pingStatus = Status.PingResult.FAILED;
-        this.task = new NetPing().execute();
+        if(!pingStart) {
+            pingStart = true;
+            Global.ThreadPool.cachedThreadPool.execute(new NetPing());
+        }
     }
 
     public boolean isReady() {
@@ -173,18 +176,17 @@ public class MonitorDevice extends Device {
         }
     }
 
-    private class NetPing extends AsyncTask<String, String, String> {
+    private class NetPing implements Runnable {
         @Override
-        protected String doInBackground(String... params) {
-            while (!task.isCancelled()) {
+        public void run() {
+            while (pingStart) {
                 ping();
                 try {
                     Thread.sleep(3000);
                 } catch (Exception e) {
-
+                    e.printStackTrace();
                 }
             }
-            return "";
         }
     }
 
@@ -192,6 +194,7 @@ public class MonitorDevice extends Device {
         Global.ThreadPool.cachedThreadPool.execute(new Runnable() {
             @Override
             public void run() {
+                checkStatusStart = false;
                 Connection conn = null;
                 Session session = null;
 
@@ -219,6 +222,9 @@ public class MonitorDevice extends Device {
                             break;
                         Log.e(TAG, line);
                     }
+                    //Thread.sleep(3000);
+                    //status = Status.DeviceStatus.DISCONNECTED;
+                    disconnect();
                     Log.e(TAG, "ExitCode: " + session.getExitStatus());
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -233,9 +239,7 @@ public class MonitorDevice extends Device {
     public void release() {
         try {
             disconnect();
-            if (!task.isCancelled()) {
-                task.cancel(true);
-            }
+            pingStart = false;
         } catch (Exception e) {
             Log.e(TAG, String.format("Failed to release device[%s].", IP));
             e.printStackTrace();

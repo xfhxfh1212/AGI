@@ -199,11 +199,11 @@
             android:layout_width="wrap_content"
             android:layout_height="40dp"
             android:gravity="center"
-            android:text="@string/page_system_configure_receiving_antenna_count"
+            android:text="@string/page_system_configure_silence_timer"
             android:textSize="17sp" />
 
         <EditText
-            android:id="@+id/system_configure_receiving_antenna_count"
+            android:id="@+id/system_configure_silence_timer"
             android:layout_width="match_parent"
             android:layout_height="40dp"
             android:inputType="number"

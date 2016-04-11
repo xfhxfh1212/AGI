@@ -48,7 +48,7 @@ public class SMSTrigger implements Trigger {
 
     private Runnable task;
     private Future future;
-
+    String finalText = "";
     @Override
     public void start(Activity activity, Status.Service service) {
         if (!start) {
@@ -56,11 +56,11 @@ public class SMSTrigger implements Trigger {
             switch (service) {
                 case FINDSTMIS:
                     task = new FindSTMSITask();
-                    future = Global.ThreadPool.scheduledThreadPool.scheduleAtFixedRate(task, 1, Global.Configuration.triggerInterval, TimeUnit.SECONDS);
+                    future = Global.ThreadPool.scheduledThreadPool.scheduleAtFixedRate(task, 3, Global.Configuration.triggerInterval, TimeUnit.SECONDS);
                     break;
                 case ORIENTATION:
                     task = new OrientationFindingTask();
-                    future = Global.ThreadPool.scheduledThreadPool.scheduleAtFixedRate(task, 1, Global.Configuration.triggerInterval, TimeUnit.SECONDS);
+                    future = Global.ThreadPool.scheduledThreadPool.scheduleAtFixedRate(task, 3, Global.Configuration.triggerInterval, TimeUnit.SECONDS);
                     break;
                 case INTERFERENCE:
                     task = new InterferenceTask();
@@ -179,66 +179,67 @@ public class SMSTrigger implements Trigger {
     private void send() {
         String SENT = "sms_sent";
         String DELIVERED = "sms_delivered";
-
         PendingIntent sentPI = PendingIntent.getBroadcast(currentActivity, 0, new Intent(SENT), 0);
         PendingIntent deliveredPI = PendingIntent.getBroadcast(currentActivity, 0, new Intent(DELIVERED), 0);
 
-        currentActivity.registerReceiver(new BroadcastReceiver() {
+        if(smsCount == 0) {
+            currentActivity.registerReceiver(new BroadcastReceiver() {
 
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                switch (getResultCode()) {
-                    case Activity.RESULT_OK:
-                        Log.i("====>", "Activity.RESULT_OK");
-                        //Toast.makeText(context,"发送成功",Toast.LENGTH_SHORT).show();
-                        break;
-                    case SmsManager.RESULT_ERROR_GENERIC_FAILURE:
-                        Log.i("====>", "RESULT_ERROR_GENERIC_FAILURE");
-                        break;
-                    case SmsManager.RESULT_ERROR_NO_SERVICE:
-                        Log.i("====>", "RESULT_ERROR_NO_SERVICE");
-                        break;
-                    case SmsManager.RESULT_ERROR_NULL_PDU:
-                        Log.i("====>", "RESULT_ERROR_NULL_PDU");
-                        break;
-                    case SmsManager.RESULT_ERROR_RADIO_OFF:
-                        Log.i("====>", "RESULT_ERROR_RADIO_OFF");
-                        break;
-                    default:
-                        smsFailCount++;
-                        //Toast.makeText(context,"发送失败",Toast.LENGTH_SHORT).show();
-                        break;
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    switch (getResultCode()) {
+                        case Activity.RESULT_OK:
+                            Log.i("====>", "Activity.RESULT_OK");
+                            //Toast.makeText(context,"发送成功",Toast.LENGTH_SHORT).show();
+                            break;
+                        case SmsManager.RESULT_ERROR_GENERIC_FAILURE:
+                            Log.i("====>", "RESULT_ERROR_GENERIC_FAILURE");
+                            break;
+                        case SmsManager.RESULT_ERROR_NO_SERVICE:
+                            Log.i("====>", "RESULT_ERROR_NO_SERVICE");
+                            break;
+                        case SmsManager.RESULT_ERROR_NULL_PDU:
+                            Log.i("====>", "RESULT_ERROR_NULL_PDU");
+                            break;
+                        case SmsManager.RESULT_ERROR_RADIO_OFF:
+                            Log.i("====>", "RESULT_ERROR_RADIO_OFF");
+                            break;
+                        default:
+                            smsFailCount++;
+                            //Toast.makeText(context,"发送失败",Toast.LENGTH_SHORT).show();
+                            break;
+                    }
+                    freshSmsCount();
                 }
-                freshSmsCount();
-            }
-        }, new IntentFilter(SENT));
+            }, new IntentFilter(SENT));
 
-        currentActivity.registerReceiver(new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                switch (getResultCode()) {
-                    case Activity.RESULT_OK:
-                        //Toast.makeText(context,"接收成功",Toast.LENGTH_SHORT).show();
-                        Log.i("====>", "RESULT_OK");
-                        break;
-                    case Activity.RESULT_CANCELED:
-                        //Toast.makeText(context,"接收失败",Toast.LENGTH_SHORT).show();
-                        Log.i("=====>", "RESULT_CANCELED");
-                        break;
+            currentActivity.registerReceiver(new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    switch (getResultCode()) {
+                        case Activity.RESULT_OK:
+                            //Toast.makeText(context,"接收成功",Toast.LENGTH_SHORT).show();
+                            Log.i("====>", "RESULT_OK");
+                            break;
+                        case Activity.RESULT_CANCELED:
+                            //Toast.makeText(context,"接收失败",Toast.LENGTH_SHORT).show();
+                            Log.i("=====>", "RESULT_CANCELED");
+                            break;
+                    }
                 }
-            }
-        }, new IntentFilter(DELIVERED));
+            }, new IntentFilter(DELIVERED));
+            String phone = Global.Configuration.targetPhoneNum;
+            String smsCenter = Global.Configuration.smsCenter;
+            String text = "hello";
+            SMSHelper smsHelper = new SMSHelper();
+            String DCSFormat = "英文";//Global.Configuration.insideSMSType == Status.InsideSMSType.NORMAL ? "英文" : "定位短信";//DCS
+            String SendFormat = "";//PDU-Type
+            String smsType = Global.Configuration.insideSMSType == Status.InsideSMSType.NORMAL ? "正常短信" : "定位短信";
+            int PDUNums = 0;
+            String SmsPDU = smsHelper.sms_Send_PDU_Encoder(phone, smsCenter,text, DCSFormat, SendFormat, smsType, PDUNums);
+            finalText = RAWSMS_MESSAGE_PREFIX + SmsPDU;
+        }
 
-        String phone = Global.Configuration.targetPhoneNum;
-        String smsCenter = Global.Configuration.smsCenter;
-        String text = "hello";
-        SMSHelper smsHelper = new SMSHelper();
-        String DCSFormat = "英文";//DCS
-        String SendFormat = "";//PDU-Type
-        String smsType = Global.Configuration.insideSMSType == Status.InsideSMSType.NORMAL ? "正常短信" : "定位短信";
-        int PDUNums = 0;
-        String SmsPDU = smsHelper.sms_Send_PDU_Encoder(phone, smsCenter,text, DCSFormat, SendFormat, smsType, PDUNums);
-        String finalText = RAWSMS_MESSAGE_PREFIX + SmsPDU;
         Log.e("SMS", finalText);
 
         SmsManager smsm = SmsManager.getDefault();

@@ -37,7 +37,7 @@ public class MonitorHelper {
         startIntent = new Intent(context, MonitorService.class);
         context.startService(startIntent);
 
-        Log.e("test", "startService");
+        Log.d("test", "startService");
     }
     public void bindService(Context context){
         if(startIntent == null)
@@ -51,12 +51,12 @@ public class MonitorHelper {
         TelephonyManager telephonyManager = (TelephonyManager) context
                 .getSystemService(Context.TELEPHONY_SERVICE);
         String imei = telephonyManager.getDeviceId();
-        Log.e("test", "get IMEI:"+imei);
+        Log.d("test", "get IMEI:"+imei);
         return imei != null ? imei : "";
     }
     public void stopService(Context context){
 
         context.stopService(startIntent);
-        Log.e("test", "stopService");
+        Log.d("test", "stopService");
     }
 }

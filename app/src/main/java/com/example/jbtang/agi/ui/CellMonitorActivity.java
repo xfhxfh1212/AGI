@@ -378,6 +378,7 @@ public class CellMonitorActivity extends AppCompatActivity {
         public TextView tai;
         public TextView ecgi;
         public TextView sinr;
+        public TextView rsrp;
         public CheckBox choose;
     }
 
@@ -417,6 +418,7 @@ public class CellMonitorActivity extends AppCompatActivity {
                 holder.tai = (TextView) convertView.findViewById(R.id.cell_monitor_item_tai);
                 holder.ecgi = (TextView) convertView.findViewById(R.id.cell_monitor_item_ecgi);
                 holder.sinr = (TextView) convertView.findViewById(R.id.cell_monitor_item_sinr);
+                holder.rsrp = (TextView) convertView.findViewById(R.id.cell_monitor_item_rsrp);
                 holder.choose = (CheckBox) convertView.findViewById(R.id.cell_monitor_item_choose);
                 convertView.setTag(holder);
             } else {
@@ -440,25 +442,39 @@ public class CellMonitorActivity extends AppCompatActivity {
             final Short tai = cellInfoList.get(position).tai;
             if (tai == Short.MAX_VALUE) {
                 holder.tai.setText(CellInfo.NULL_VALUE);
-            } else {
+            } else if(tai >= 0){
                 holder.tai.setText("" + tai);
             }
-
-            NumberFormat nf = NumberFormat.getInstance();
-            nf.setMaximumIntegerDigits(3);
-            nf.setMaximumFractionDigits(2);
+            else if(tai < 0){
+                int utai  = tai & 0x0000FFFF;
+                holder.tai.setText("" + utai);
+            }
 
             final Integer ecgi = cellInfoList.get(position).ecgi;
-            if (!Float.isNaN(ecgi)) {
-                holder.ecgi.setText(nf.format(ecgi));
-            } else {
+            if (ecgi == Integer.MAX_VALUE) {
                 holder.ecgi.setText(CellInfo.NULL_VALUE);
+            } else if(ecgi >= 0){
+                holder.ecgi.setText("" + ecgi);
+            }else if(ecgi <0){
+                long uecgi = ecgi & 0x00000000ffffffff;
+                holder.ecgi.setText("" + uecgi);
             }
+            NumberFormat nf = NumberFormat.getInstance();
+            nf.setMaximumIntegerDigits(3);
+            nf.setMaximumFractionDigits(1);
+
+
             final Float sinr = cellInfoList.get(position).sinr;
             if (!Float.isNaN(sinr)) {
                 holder.sinr.setText(nf.format(sinr));
             } else {
                 holder.sinr.setText(CellInfo.NULL_VALUE);
+            }
+            final Float rsrp = cellInfoList.get(position).rsrp;
+            if (!Float.isNaN(rsrp)) {
+                holder.rsrp.setText(nf.format(rsrp));
+            } else {
+                holder.rsrp.setText(CellInfo.NULL_VALUE);
             }
 
             holder.choose.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {

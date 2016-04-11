@@ -32,9 +32,9 @@ public class MonitorService extends Service {
 
         if (openDevice()) {
             //工作线程
-            Log.e(TAG, "Service has Started!");
+            Log.d(TAG, "Service has Started!");
         } else {
-            Log.e(TAG, "Service start error!");
+            Log.d(TAG, "Service start error!");
         }
     }
 
@@ -56,7 +56,7 @@ public class MonitorService extends Service {
 
             return true;
         } else {
-            Log.e(TAG, "打开设备失败!");
+            Log.d(TAG, "打开设备失败!");
             return false;
         }
 
@@ -86,7 +86,7 @@ public class MonitorService extends Service {
         }
 
         super.onDestroy();
-        Log.e(TAG, "onDestroy() executed");
+        Log.d(TAG, "onDestroy() executed");
     }
 
     @Override
@@ -96,7 +96,7 @@ public class MonitorService extends Service {
 
     @Override
     public boolean onUnbind(Intent intent) {
-        Log.e(TAG, "onUnbind() executed");
+        Log.d(TAG, "onUnbind() executed");
         return super.onUnbind(intent);
     }
 

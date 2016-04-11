@@ -8,6 +8,7 @@ import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.speech.tts.TextToSpeech;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -20,6 +21,7 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.example.jbtang.agi.R;
 import com.example.jbtang.agi.core.Global;
@@ -30,10 +32,13 @@ import com.example.jbtang.agi.external.MonitorHelper;
 import com.example.jbtang.agi.service.OrientationFinding;
 import com.example.jbtang.agi.utils.BarChartView;
 
+import org.w3c.dom.Text;
+
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 
 import io.fmaster.LTEServCellMessage;
 
@@ -41,6 +46,7 @@ import io.fmaster.LTEServCellMessage;
  * Created by jbtang on 11/7/2015.
  */
 public class OrientationFindingActivity extends AppCompatActivity {
+    private static final String TAG = "OrientationActivity";
     private static final int RSRP_LIST_MAX_SIZE = 4;
     private boolean startToFind;
 
@@ -60,7 +66,7 @@ public class OrientationFindingActivity extends AppCompatActivity {
     private MonitorHelper monitorHelper;
     public static List<String> options = Arrays.asList("", "", "", "", "", "");
     private BarChartView view;
-
+    private TextToSpeech textToSpeech;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -156,6 +162,21 @@ public class OrientationFindingActivity extends AppCompatActivity {
         OrientationFinding.getInstance().setOutHandler(new myHandler(this));
         monitorHelper = new MonitorHelper();
         monitorHelper.bindService(OrientationFindingActivity.this);
+
+        textToSpeech = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
+            @Override
+            public void onInit(int status) {
+                if(status == TextToSpeech.SUCCESS){
+                    int result = textToSpeech.setLanguage(Locale.CHINA);
+                    if(result == TextToSpeech.LANG_NOT_SUPPORTED
+                            || result == TextToSpeech.LANG_MISSING_DATA){
+                        Toast.makeText(OrientationFindingActivity.this,"数据丢失或不支持",Toast.LENGTH_LONG).show();
+                    } else {
+                        textToSpeech.setPitch(1.5f);
+                    }
+                }
+            }
+        });
     }
 
     private void refresh(String type) {
@@ -194,6 +215,10 @@ public class OrientationFindingActivity extends AppCompatActivity {
         }
         view.initData(puschList, options, "功率图");
         resultGraphLayout.addView(view.getBarChartView());
+        if(textToSpeech != null && !textToSpeech.isSpeaking()) {
+            textToSpeech.speak(String.valueOf(puschList[RSRP_LIST_MAX_SIZE - 1]), TextToSpeech.QUEUE_FLUSH, null);
+            Log.e(TAG,"textToSpeech.speak " + String.valueOf(puschList[RSRP_LIST_MAX_SIZE - 1]));
+        }
     }
     private void refreshCellStatusBar(){
         if(DeviceManager.getInstance().getDevices().size() == 0)

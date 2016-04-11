@@ -8,6 +8,7 @@ import android.support.annotation.NonNull;
 import android.util.Log;
 import android.util.Pair;
 import android.widget.CheckBox;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.jbtang.agi.R;
@@ -25,6 +26,8 @@ import com.example.jbtang.agi.trigger.PhoneTrigger;
 import com.example.jbtang.agi.trigger.SMSTrigger;
 import com.example.jbtang.agi.trigger.Trigger;
 import com.example.jbtang.agi.ui.FindSTMSIActivity;
+
+import org.w3c.dom.Text;
 
 import java.lang.ref.WeakReference;
 import java.text.SimpleDateFormat;
@@ -54,6 +57,8 @@ public class FindSTMSI {
     private CheckBox filterCheckBox;
     private Status.Service service;
     public int stmsiCount;
+    public int sumCount;
+    public int nullCount;
     private Date interferenceTime;
     public List<CountSortedInfo> getCountSortedInfoList() {
         countSortedInfoList.clear();
@@ -105,11 +110,14 @@ public class FindSTMSI {
         currentActivity = activity;
         MessageDispatcher.getInstance().RegisterHandler(handler);
         stmsiCount = 0;
+        sumCount = 0;
+        nullCount = 0;
         sTMSI2Count.clear();
         countSortedInfoList.clear();
         interferenceTime = new Date();
         Log.e("Test", activity.getLocalClassName());
         if(activity.getLocalClassName().equals("ui.FindSTMSIActivity")) {
+
             filterCheckBox = (CheckBox) activity.findViewById(R.id.find_stmsi_filter_checkbox);
             service = Status.Service.FINDSTMIS;
             trigger.start(activity, service);
@@ -154,20 +162,10 @@ public class FindSTMSI {
 
     private void resolveUECaptureMsg(Global.GlobalMsg globalMsg) {
         stmsiCount++;
+        sumCount++;
         long difTime;
         Date currentTime = new Date();
 
-        if(service == Status.Service.FINDSTMIS) {
-            difTime = (currentTime.getTime() - Global.sendTime.getTime()) / 1000;
-            if (difTime > Global.Configuration.filterInterval) {
-                return;
-            }
-        }else {
-            difTime = (currentTime.getTime() - interferenceTime.getTime()) / 1000;
-            if(difTime < 8) {
-                return;
-            }
-        }
         MsgL2P_AG_UE_CAPTURE_IND msg = new MsgL2P_AG_UE_CAPTURE_IND(globalMsg.getBytes());
         String stmsi = "";
         byte mec = 0;
@@ -187,10 +185,22 @@ public class FindSTMSI {
                     .append(padLeft(String.format("%X", stmsiBytes[3]), "0", 2))
                     .toString();
         }
-
-        Log.e(TAG, String.format("---------Find STMSI :%s Time :%d Type :%d-----------", stmsi,difTime ,mu8EstCause));
-        if(stmsi.equals(""))
+        if(stmsi.equals("")) {
+            nullCount++;
             return;
+        }
+        if(service == Status.Service.FINDSTMIS) {
+            difTime = (currentTime.getTime() - Global.sendTime.getTime()) / 1000;
+            if (difTime > Global.Configuration.filterInterval) {
+                return;
+            }
+        }else {
+            difTime = (currentTime.getTime() - interferenceTime.getTime()) / 1000;
+            if(difTime < 8) {
+                return;
+            }
+        }
+        Log.e(TAG, String.format("---------Find STMSI :%s Time :%d Type :%d-----------", stmsi,difTime ,mu8EstCause));
         if (!(mu8EstCause == 0x02)) {
             return;
         }

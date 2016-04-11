@@ -75,10 +75,11 @@
     <string name="page_test_cell_monitor_next_step">保存</string>
     <string name="page_test_cell_monitor_item_earfcn">EARFCN</string>
     <string name="page_test_cell_monitor_item_pci">PCI</string>
+    <string name="page_test_cell_monitor_item_earfcn_pci">EARFCN\PCI</string>
     <string name="page_test_cell_monitor_item_tai">TAI</string>
     <string name="page_test_cell_monitor_item_ecgi">E-CGI</string>
-    <string name="page_test_cell_monitor_item_sinr">SINR(dB)</string>
-    <string name="page_test_cell_monitor_item_rsrp">RSRP(dBm)</string>
+    <string name="page_test_cell_monitor_item_sinr">SINR</string>
+    <string name="page_test_cell_monitor_item_rsrp">RSRP</string>
     <string name="page_test_cell_monitor_manual_cell">手动指定小区</string>
     <string name="page_test_cell_monitor_auto_cell">自动搜索小区</string>
     <string name="page_test_cell_monitor_cell_list">守控小区列表</string>
@@ -101,6 +102,8 @@
     <string name="page_find_stmsi_target">目标号码:</string>
     <string name="page_find_stmsi_current_times">触发次数:</string>
     <string name="page_find_stmsi_current_fail_times">失败次数:</string>
+    <string name="page_find_stmsi_sum_count">STMSI总个数:</string>
+    <string name="page_find_stmsi_null_count">无效STMSI数:</string>
     <string name="page_find_stmsi_current_pci">当前服务小区:</string>
     <string name="page_find_stmsi_sort_by_count">按次数排序</string>
     <string name="page_find_stmsi_title_stmsi">STMSI</string>
@@ -142,6 +145,8 @@
     <string name="page_interference_title_earfcn">EARFCN</string>
     <string name="page_interference_filter_count">过滤数量 :</string>
     <string name="menu_interference_save">保存</string>
+    <string name="page_interference_sum_count">STMSI总个数:</string>
+    <string name="page_interference_null_count">无效STMSI数:</string>
     <!-- local info -->
     <string name="page_local_info_my_stmsi">本机STMSI :</string>
 
@@ -161,12 +166,22 @@
     <string name="page_welcome_version">version 1.0</string>
     <string name="title_activity_welcome">欢迎</string>
 
-    <!-- test -->
-    <string name="login_label_username">用户名:</string>
-    <string name="login_label_password">密码:</string>
-    <string name="login_label_signin">登 录</string>
+    <!-- login -->
+    <string name="page_login_label_username">用户名:</string>
+    <string name="page_login_label_password">密码:</string>
+    <string name="page_login_label_count">剩余次数:</string>
+    <string name="page_login_label_signin">登 录</string>
+    <string name="page_login_label_manage">管 理</string>
     <string name="login_register_link">没有帐号？ <a href="http://fanfou.com/register">注册</a></string>
-
+    <!-- user manage -->
+    <string name="page_user_manage_label_username">用户名</string>
+    <string name="page_user_manage_label_password">密码</string>
+    <string name="page_user_manage_label_count">剩余次数</string>
+    <string name="page_user_manage_button_cancel">取消</string>
+    <string name="page_user_manage_button_save">保存</string>
+    <string name="page_user_manage_button_delete">删除</string>
+    <string name="page_user_manage_button_add">添加</string>
+    <string name="page_user_manage_button_update">更新</string>
 
     <string name="send">send</string>
     <string name="register">register</string>
@@ -178,5 +193,8 @@
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
     <string name="title_activity_cell_monitor">CellMonitorActivity</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 
 </resources>

@@ -60,7 +60,10 @@ public class InterferenceActivity extends AppCompatActivity {
     private TextView cellConfirmColor;
     private TextView cellRsrp;
     private TextView pciNum;
+    private TextView sumCountText;
+    private TextView nullCountText;
     private MonitorHelper monitorHelper;
+    private static final int STMSICountMaxValuePerMinute = 300;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -74,6 +77,10 @@ public class InterferenceActivity extends AppCompatActivity {
     }
     @Override
     protected void onDestroy() {
+        if(startToFind) {
+            FindSTMSI.getInstance().stop();
+            startToFind = false;
+        }
         unregisterReceiver(receiver);
         monitorHelper.unbindservice(InterferenceActivity.this);
         super.onDestroy();
@@ -112,6 +119,8 @@ public class InterferenceActivity extends AppCompatActivity {
         cellConfirmColor = (TextView)findViewById(R.id.interference_confirm_background);
         cellRsrp = (TextView)findViewById(R.id.interference_rsrp);
         pciNum = (TextView)findViewById(R.id.interference_pci_num);
+        sumCountText = (TextView) findViewById(R.id.interference_sum_count_text);
+        nullCountText = (TextView) findViewById(R.id.interference_null_count_text);
 
         targetPhone.setText(Global.Configuration.targetPhoneNum);
 
@@ -149,6 +158,8 @@ public class InterferenceActivity extends AppCompatActivity {
                 }
             }
         }, 1, 3, TimeUnit.SECONDS);
+        MyRunnable myRunnable = new MyRunnable();
+        Global.ThreadPool.scheduledThreadPool.scheduleAtFixedRate(myRunnable, 120, 120, TimeUnit.SECONDS);
 
         IntentFilter filter = new IntentFilter(MonitorApplication.BROAD_TO_MAIN_ACTIVITY);
         filter.addAction(MonitorApplication.BROAD_FROM_MAIN_MENU_DEVICE);
@@ -164,6 +175,8 @@ public class InterferenceActivity extends AppCompatActivity {
                 countSortedInfoList.clear();
                 countSortedInfoList.addAll(FindSTMSI.getInstance().getCountSortedInfoList());
                 ((CountAdapter) count.getAdapter()).notifyDataSetChanged();
+                sumCountText.setText(String.valueOf(FindSTMSI.getInstance().sumCount));
+                nullCountText.setText(String.valueOf(FindSTMSI.getInstance().nullCount));
                 if(DeviceManager.getInstance().getDevices().size() == 0)
                     return;
                 if (DeviceManager.getInstance().getDevices().get(0).getWorkingStatus() == Status.DeviceWorkingStatus.NORMAL) {
@@ -316,6 +329,31 @@ public class InterferenceActivity extends AppCompatActivity {
         count = count > countSortedInfoList.size() ? countSortedInfoList.size() : count;
         for(int i = 0; i < count; i++){
             Global.filterStmsiMap.put(countSortedInfoList.get(i).stmsi, countSortedInfoList.get(i).earfcn);
+        }
+    }
+    class MyRunnable implements Runnable {
+        @Override
+        public void run() {
+            if(startToFind) {
+                if (FindSTMSI.getInstance().stmsiCount < STMSICountMaxValuePerMinute) {
+                    FindSTMSI.getInstance().stmsiCount = 0;
+                } else {
+                    //FindSTMSI.getInstance().stop();
+                    //startToFind = false;
+                    InterferenceActivity.this.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            //startButton.setEnabled(true);
+                            new AlertDialog.Builder(InterferenceActivity.this)
+                                    .setTitle("注意")
+                                    .setMessage("该处STMSI过多，不适合工作!")
+                                    .setPositiveButton("确定", null)
+                                    .show();
+                        }
+                    });
+
+                }
+            }
         }
     }
 }

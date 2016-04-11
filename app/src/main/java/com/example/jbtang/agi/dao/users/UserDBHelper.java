@@ -13,7 +13,10 @@ public class UserDBHelper extends SQLiteOpenHelper {
     private static final int DATABASE_VERSION = 1;
 
     public static final String TABLE_NAME = "users";
-
+    public static final String ADMIN = "admin";
+    public static final String DEFAUL_NAME = "user";
+    public static final String DEFAUL_PASSWORD = "user";
+    public static final String DEFAUL_COUNT = "50";
     public UserDBHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
     }
@@ -21,7 +24,7 @@ public class UserDBHelper extends SQLiteOpenHelper {
     @Override
     public void onCreate(SQLiteDatabase db) {
         db.execSQL("CREATE TABLE IF NOT EXISTS " + UserDBHelper.TABLE_NAME +
-                "(name TEXT PRIMARY KEY, password TEXT)");
+                "(name TEXT PRIMARY KEY, password TEXT, count TEXT)");
     }
 
     @Override

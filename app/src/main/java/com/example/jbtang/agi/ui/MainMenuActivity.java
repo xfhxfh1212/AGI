@@ -38,6 +38,8 @@ import com.example.jbtang.agi.external.service.MonitorService;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
@@ -127,6 +129,7 @@ public class MainMenuActivity extends AppCompatActivity {
         cmgr = new ConfigurationDBManager(this);
         dao = cmgr.getConfiguration(Global.UserInfo.user_name);
         saveToCache();
+        saveToDAO();
         phoneNum.setText(Global.Configuration.targetPhoneNum);
         saveBtn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -278,6 +281,7 @@ public class MainMenuActivity extends AppCompatActivity {
         List<DeviceDAO> deviceDAOs = dmgr.listDB();
         for (DeviceDAO dao : deviceDAOs) {
             devices.add(new MonitorDevice(dao.name, dao.ip, dao.type));
+            Log.e(TAG, "deviceAdd" + dao.ip);
         }
         return devices;
     }
@@ -311,14 +315,18 @@ public class MainMenuActivity extends AppCompatActivity {
                         devices.add(new MonitorDevice(name, ip, type));
                         break;
                     case ConfigurationActivity.DELETE_DEVICE_FLAG:
-                        String temDevice = intent.getStringExtra("name");
-                        MonitorDevice device = DeviceManager.getInstance().getDevice(temDevice);
-                        if(device != null)
+                        String deviceName = intent.getStringExtra("name");
+                        MonitorDevice device = DeviceManager.getInstance().getDevice(deviceName);
+                        if(device != null) {
                             device.release();
-                        for(MonitorDevice temdevice:devices){
-                            if(temdevice.getName().equals(temDevice)) {
-                                temdevice.release();
-                                devices.remove(temdevice);
+                            DeviceManager.getInstance().remove(deviceName);
+                        }
+                        Iterator iterator = devices.iterator();
+                        while(iterator.hasNext()) {
+                            MonitorDevice temDevice = (MonitorDevice)iterator.next();
+                            if (temDevice.getName().equals(deviceName)) {
+                                temDevice.release();
+                                iterator.remove();
                             }
                         }
                         break;
@@ -353,8 +361,16 @@ public class MainMenuActivity extends AppCompatActivity {
                     if (statusText != "已连接")
                         statusText = "已就绪";
                 }
+                try {
+                    //device.connect();
+                }catch (Exception e){
+                    e.printStackTrace();
+                }
             }
             //Log.d("changeDevice","devicename:"+device.getName()+" hashcode:"+device.hashCode());
+        }
+        if(devices.size() == 0){
+            statusText = "尚未添加设备";
         }
         Intent intent = new Intent();
         intent.putExtra("colorOne",colorOne);
