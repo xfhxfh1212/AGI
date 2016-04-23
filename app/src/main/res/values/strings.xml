@@ -28,6 +28,7 @@
     <string name="title_activity_device_configuration">设备管理</string>
     <string name="title_device_configuration_show_detail">详细信息</string>
     <string name="title_device_configuration_confirm_delete">确认删除?</string>
+    <string name="title_device_congituration_confirm_reboot">确认重启?</string>
     <string name="menu_device_configuration">添加设备</string>
     <string name="menu_device_configuration_dialog_add">添加</string>
     <string name="menu_device_configuration_dialog_cancel">取消</string>
@@ -43,9 +44,12 @@
     <string name="page_device_configure_switch_off">关</string>
     <string name="page_device_configure_switch_on">开</string>
     <string name="page_device_configure_show_detail_ok">确定</string>
+    <string name="page_device_configure_show_detail_reboot">重启</string>
     <string name="page_device_configure_show_detail_delete">删除</string>
     <string name="page_device_configure_confirm_delete_ok">确定</string>
     <string name="page_device_configure_confirm_delete_cancel">取消</string>
+    <string name="page_device_configure_confirm_reboot_ok">确定</string>
+    <string name="page_device_configure_confirm_reboot_cancel">取消</string>
 
     <!-- system configuration page -->
     <string name="title_activity_system_configuration">系统参数配置</string>
@@ -152,8 +156,8 @@
 
     <!-- status bar -->
     <string name="page_status_bar_device_status">设备状态</string>
-    <string name="page_status_bar_agi_one">AGI 1</string>
-    <string name="page_status_bar_agi_two">AGI 2</string>
+    <string name="page_status_bar_agi_one">M1</string>
+    <string name="page_status_bar_agi_two">M2</string>
     <string name="page_status_bar_device_confirm">驻留状态</string>
     <string name="page_status_bar_rsrp">信号强度</string>
     <string name="page_status_bar_pci">PCI</string>
@@ -172,6 +176,7 @@
     <string name="page_login_label_count">剩余次数:</string>
     <string name="page_login_label_signin">登 录</string>
     <string name="page_login_label_manage">管 理</string>
+    <string name="page_login_label_remember">记住账号</string>
     <string name="login_register_link">没有帐号？ <a href="http://fanfou.com/register">注册</a></string>
     <!-- user manage -->
     <string name="page_user_manage_label_username">用户名</string>

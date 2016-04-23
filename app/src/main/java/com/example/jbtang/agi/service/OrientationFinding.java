@@ -5,7 +5,10 @@ import android.app.AlertDialog;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
+import android.widget.Button;
+import android.widget.Toast;
 
+import com.example.jbtang.agi.R;
 import com.example.jbtang.agi.core.Global;
 import com.example.jbtang.agi.core.MsgSendHelper;
 import com.example.jbtang.agi.core.Status;
@@ -33,6 +36,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -61,8 +66,9 @@ public class OrientationFinding {
     //private boolean needToCount;
     private Handler outHandler;
     private Task task;
-
+    private Map<String, Timer> timerMap;
     public String targetStmsi;
+    private Button startBtn;
 
     public void setOutHandler(Handler handler) {
         this.outHandler = handler;
@@ -100,7 +106,7 @@ public class OrientationFinding {
         private static final int STANDARDED_MIN_RSRP = 10;
         private static final int STANDARDED_MAX_RSRP = 100;
         private static final double MIN_RSRP = -115D;
-        private static final double MAX_RSRP = -55D;
+        private static final double MAX_RSRP = -45D;
 
         private static int format(double rsrp) {
             if (Double.isNaN(rsrp)) {
@@ -120,6 +126,8 @@ public class OrientationFinding {
         trigger = SMSTrigger.getInstance();
         //needToCount = false;
         ueInfoQueue = new LinkedList<>();
+        timerMap = new HashMap<>();
+
     }
 
     public static OrientationFinding getInstance() {
@@ -181,11 +189,37 @@ public class OrientationFinding {
         Log.d(TAG, String.format("================== Orientation find stmsi : %s ====================", Global.TARGET_STMSI));
         Log.d(TAG, MsgSendHelper.convertBytesToString(Global.TARGET_STMSI.getBytes()));
         trigger.start(activity, Status.Service.ORIENTATION);
-
+        startBtn = (Button) activity.findViewById(R.id.orientation_find_start);
         task = new Task();
         future = Global.ThreadPool.scheduledThreadPool.scheduleAtFixedRate(task, COUNT_INTERVAL, COUNT_INTERVAL, TimeUnit.SECONDS);
+        for (MonitorDevice device : DeviceManager.getInstance().getDevices()) {
+            timerMap.put(device.getName(), new Timer());
+        }
+        for(Map.Entry<String, Timer> entry : timerMap.entrySet()) {
+            entry.getValue().schedule(new MyTimerTask(entry.getKey()), 15000);
+        }
     }
-
+    private class MyTimerTask extends TimerTask {
+        private String mName;
+        public MyTimerTask(String name) {
+            mName = name;
+        }
+        @Override
+        public void run() {
+            MonitorDevice device = DeviceManager.getInstance().getDevice(mName);
+            if(device.isWorking()) {
+                device.reboot();
+                timerMap.get(mName).cancel();
+                timerMap.remove(mName);
+                Toast.makeText(currentActivity, String.format("%d小区驻留失败，%s正在恢复初始状态！", device.getCellInfo().pci, mName), Toast.LENGTH_SHORT).show();
+                if(timerMap.isEmpty()) {
+                    trigger.stop();
+                    startBtn.setEnabled(true);
+                    Toast.makeText(currentActivity, "搜索已停止！", Toast.LENGTH_SHORT).show();
+                }
+            }
+        }
+    }
     public void stop() {
         trigger.stop();
         if (future != null) {
@@ -233,29 +267,22 @@ public class OrientationFinding {
         Status.DeviceWorkingStatus status = msg.getMu16Rsrp() == 0 ? Status.DeviceWorkingStatus.ABNORMAL : Status.DeviceWorkingStatus.NORMAL;
         Float rsrp = msg.getMu16Rsrp() * 1.0F;
         int pci = msg.getMu16PCI();
-        DeviceManager.getInstance().getDevice(globalMsg.getDeviceName()).setWorkingStatus(status);
-        DeviceManager.getInstance().getDevice(globalMsg.getDeviceName()).getCellInfo().rsrp = rsrp;
+        MonitorDevice monitorDevice = DeviceManager.getInstance().getDevice(globalMsg.getDeviceName());
+        monitorDevice.cancleCheckCellCaoture();
+        monitorDevice.setWorkingStatus(status);
+        monitorDevice.getCellInfo().rsrp = rsrp;
         Log.e(TAG, String.format("==========status : %s, rsrp : %f ============", status.name(), rsrp) + "PCI:" + pci);
-//        if(status == Status.DeviceWorkingStatus.ABNORMAL){
-//            try {
-//                trigger.stop();
-//                DeviceManager.getInstance().getDevice(globalMsg.getDeviceName()).reboot();
-//                DeviceManager.getInstance().getDevice(globalMsg.getDeviceName()).disconnect();
-//                DeviceManager.getInstance().remove(globalMsg.getDeviceName());
-//                currentActivity.runOnUiThread(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        new AlertDialog.Builder(currentActivity)
-//                                .setTitle("注意")
-//                                .setMessage("小区驻留失败，设备正在恢复初始状态，稍后请手动连接！")
-//                                .setPositiveButton("确定", null)
-//                                .show();
-//                    }
-//                });
-//            }catch (Exception e){
-//                e.printStackTrace();
-//            }
-//        }
+        timerMap.get(monitorDevice.getName()).cancel();
+        if(status == Status.DeviceWorkingStatus.ABNORMAL) {
+            timerMap.remove(monitorDevice.getName());
+            if (timerMap.isEmpty()) {
+                trigger.stop();
+                startBtn.setEnabled(true);
+                Toast.makeText(currentActivity, "搜索已停止！", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(currentActivity, String.format("%d小区驻留失败！",pci), Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 
     private boolean isCRSChType(long type) {
@@ -270,6 +297,11 @@ public class OrientationFinding {
             Message msg = new Message();
             if (/*needToCount &&*/ !ueInfoQueue.isEmpty()) {
                 msg.obj = getOrientationInfo();
+            } else if(!cellRSRPList.isEmpty()){
+                if(DeviceManager.getInstance().getDevices().size() > 0) {
+                    DeviceManager.getInstance().getDevices().get(0).getCellInfo().rsrp = getCellRsrp();
+                }
+                msg.obj = null;
             } else {
                 msg.obj = null;
             }

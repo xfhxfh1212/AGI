@@ -63,7 +63,7 @@ public class InterferenceActivity extends AppCompatActivity {
     private TextView sumCountText;
     private TextView nullCountText;
     private MonitorHelper monitorHelper;
-    private static final int STMSICountMaxValuePerMinute = 300;
+    private static final int STMSICountMaxValuePerMinute = 400;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

@@ -78,6 +78,15 @@
             android:layout_toRightOf="@id/welcome_count_text"
             android:gravity="center"
             />
+        <CheckBox
+            android:id="@+id/welcome_remember_checkbox"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/welcome_password_edit"
+            android:layout_toRightOf="@+id/welcome_count_edit"
+            android:text="@string/page_login_label_remember"
+            android:textSize="17sp"
+            android:gravity="center"/>
         <Button
             android:id="@+id/welcome_manage_button"
             android:layout_width="wrap_content"

@@ -60,6 +60,10 @@ public class Device {
         return status != Status.DeviceStatus.DISCONNECTED;
     }
 
+    public boolean isWorking() {
+        return status == Status.DeviceStatus.WORKING;
+    }
+
     public Device(String name, String IP, int dataPort, int messagePort) {
         this.name = name;
         this.IP = IP;
@@ -115,10 +119,11 @@ public class Device {
                 currentTime = new Date();
                 long time = (currentTime.getTime() - receiveTime.getTime()) / 1000;
                 Log.e(TAG,"time:" + String.valueOf(time) + "connectCount:"+ String.valueOf(connectCount));
-                if (time > 10) {
+                if (time > 7) {
                     status = Status.DeviceStatus.DISCONNECTED;
-                    if (connectCount > 10) {
+                    if (connectCount > 5) {
                         checkStatusStart = false;
+                        dispose();
                         return;
                     }
                     try {
@@ -173,9 +178,9 @@ public class Device {
             @Override
             public void run(){
                 byte[] buffer = new byte[Message_RECEIVE_BUFFER_SIZE];
-                while(true) {
+                while (true) {
                     try {
-                        if(ackIn.read(buffer, 0, MsgHeader.byteArrayLen) == -1){
+                        if (ackIn.read(buffer, 0, MsgHeader.byteArrayLen) == -1) {
                             continue;
                         }
                         MsgHeader header = new MsgHeader(MsgSendHelper.getSubByteArray(buffer, 0, MsgHeader.byteArrayLen));
@@ -194,10 +199,11 @@ public class Device {
                         Log.d(TAG, String.format("Device name: %s Message type: %x length: %d", name, header.getMsgType(), messageLen));
                         Log.d(TAG, "Receive form message port : " + convertByteToString(dataBuffer));
                         receiveTime = new Date();
-
                     } catch (Exception e) {
                         Log.d(TAG, "Message receive exception.", e);
-                        return;
+                        if (ackIn == null) {
+                            return;
+                        }
                     }
                 }
             }
@@ -234,8 +240,10 @@ public class Device {
                             MessageDispatcher.getInstance().Dispatch(new Global.GlobalMsg(name, header.getMsgType(), dataBuffer));
                         }
                     } catch (Exception e) {
-                        Log.e(TAG, "Data receive exception.", e);
-                        return;
+                        Log.d(TAG, "Data receive exception.", e);
+                        if (dataIn == null) {
+                            return;
+                        }
                     }
                 }
             }

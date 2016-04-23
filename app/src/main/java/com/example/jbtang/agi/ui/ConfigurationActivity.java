@@ -71,6 +71,7 @@ public class ConfigurationActivity extends AppCompatActivity {
     private static final Pattern PHONE_NUMBER = Pattern.compile("^((13[0-9])|(15[^4,\\D])|(18[0-9]))\\d{8}$");
     public static final String ADD_DEVICE_FLAG = "addDeviceFlag";
     public static final String DELETE_DEVICE_FLAG = "deleteDeviceFlag";
+    public static final String REBOOT_DEVICE_FLAG = "rebootDeivceFlag";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -197,11 +198,18 @@ public class ConfigurationActivity extends AppCompatActivity {
         builder.setTitle(R.string.title_device_configuration_show_detail)
                 .setView(view)
                 .setPositiveButton(R.string.page_device_configure_show_detail_ok, null)
+                .setNeutralButton(R.string.page_device_configure_show_detail_reboot, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        confirmReboot(position);
+                    }
+                })
                 .setNegativeButton(R.string.page_device_configure_show_detail_delete, new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int which) {
                         confirmDelete(position);
                     }
                 })
+
                 .show();
         initialShowDetailInfoDialog(view, devices.get(position));
     }
@@ -236,6 +244,22 @@ public class ConfigurationActivity extends AppCompatActivity {
                 .setPositiveButton(R.string.page_device_configure_confirm_delete_ok, new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int which) {
                         deleteDevice(position);
+                    }
+                })
+                .show();
+    }
+    private void rebootDevice(int position) {
+        MonitorDevice device = devices.get(position);
+        sendMyBroadcast(REBOOT_DEVICE_FLAG, device);
+    }
+    private void confirmReboot(final int position) {
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.title_device_congituration_confirm_reboot)
+                .setNegativeButton(R.string.page_device_configure_confirm_reboot_cancel,null)
+                .setPositiveButton(R.string.page_device_configure_confirm_reboot_ok, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        rebootDevice(position);
                     }
                 })
                 .show();
@@ -500,14 +524,16 @@ public class ConfigurationActivity extends AppCompatActivity {
     }
     private void sendMyBroadcast(String flag,MonitorDevice device){
         Intent intent = new Intent();  //Itent就是我们要发送的内容
-        intent.putExtra("flag",flag);
-        if(flag.equals(ADD_DEVICE_FLAG)){
-            intent.putExtra("name",device.getName());
-            intent.putExtra("ip",device.getIP());
-            intent.putExtra("type",device.getType());
-        }else if(flag.equals(DELETE_DEVICE_FLAG)){
-            intent.putExtra("name",device.getName());
-            Log.d("changeDevice","send deleteDevice,deviceName: "+ device.getName());
+        intent.putExtra("flag", flag);
+        if (flag.equals(ADD_DEVICE_FLAG)) {
+            intent.putExtra("name", device.getName());
+            intent.putExtra("ip", device.getIP());
+            intent.putExtra("type", device.getType());
+        } else if (flag.equals(DELETE_DEVICE_FLAG)) {
+            intent.putExtra("name", device.getName());
+            Log.d("changeDevice", "send deleteDevice,deviceName: " + device.getName());
+        } else if (flag.equals(REBOOT_DEVICE_FLAG)) {
+            intent.putExtra("name", device.getName());
         }
         intent.setAction(MonitorApplication.BROAD_FROM_CONFIGURATION_ACTIVITY);   //设置你这个广播的action，只有和这个action一样的接受者才能接受者才能接收广播
         sendBroadcast(intent);   //发送广播

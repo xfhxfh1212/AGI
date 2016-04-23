@@ -1,4 +1,5 @@
 package com.example.jbtang.agi.ui;
+import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -308,28 +309,40 @@ public class MainMenuActivity extends AppCompatActivity {
                 String flag = intent.getStringExtra("flag");
                 switch (flag)
                 {
-                    case ConfigurationActivity.ADD_DEVICE_FLAG:
+                    case ConfigurationActivity.ADD_DEVICE_FLAG: {
                         String name = intent.getStringExtra("name");
                         String ip = intent.getStringExtra("ip");
                         Status.BoardType type = (Status.BoardType) intent.getSerializableExtra("type");
                         devices.add(new MonitorDevice(name, ip, type));
                         break;
-                    case ConfigurationActivity.DELETE_DEVICE_FLAG:
-                        String deviceName = intent.getStringExtra("name");
-                        MonitorDevice device = DeviceManager.getInstance().getDevice(deviceName);
-                        if(device != null) {
+                    }
+                    case ConfigurationActivity.DELETE_DEVICE_FLAG: {
+                        String name = intent.getStringExtra("name");
+                        MonitorDevice device = DeviceManager.getInstance().getDevice(name);
+                        if (device != null) {
                             device.release();
-                            DeviceManager.getInstance().remove(deviceName);
+                            DeviceManager.getInstance().remove(name);
                         }
                         Iterator iterator = devices.iterator();
-                        while(iterator.hasNext()) {
-                            MonitorDevice temDevice = (MonitorDevice)iterator.next();
-                            if (temDevice.getName().equals(deviceName)) {
+                        while (iterator.hasNext()) {
+                            MonitorDevice temDevice = (MonitorDevice) iterator.next();
+                            if (temDevice.getName().equals(name)) {
                                 temDevice.release();
                                 iterator.remove();
                             }
                         }
                         break;
+                    }
+                    case ConfigurationActivity.REBOOT_DEVICE_FLAG: {
+                        String name = intent.getStringExtra("name");
+                        MonitorDevice device = DeviceManager.getInstance().getDevice(name);
+                        if (device != null) {
+                            device.reboot();
+                            DeviceManager.getInstance().remove(name);
+                            Toast.makeText(MainMenuActivity.this, "设备重启中!", Toast.LENGTH_SHORT).show();
+                        }
+                        break;
+                    }
                     default:
                         break;
                 }

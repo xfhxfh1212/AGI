@@ -134,6 +134,9 @@ public class OrientationFindingActivity extends AppCompatActivity {
         startButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                if(textToSpeech != null && !textToSpeech.isSpeaking()) {
+                    textToSpeech.speak("开始侧向", TextToSpeech.QUEUE_FLUSH, null);
+                }
                 if(startToFind)
                     return;
                 if (DeviceManager.getInstance().getDevices().size() == 0)
@@ -301,7 +304,7 @@ public class OrientationFindingActivity extends AppCompatActivity {
                 holder = (ViewHolder) convertView.getTag();
             }
 
-            holder.num.setText(String.valueOf(position));
+            holder.num.setText(String.valueOf(position + 1));
             holder.pusch.setText(String.format("%.2f", orientationInfoList.get(position).PUSCHRsrp));
             holder.time.setText(orientationInfoList.get(position).timeStamp);
             return convertView;
@@ -342,8 +345,15 @@ public class OrientationFindingActivity extends AppCompatActivity {
         }
     }
     private void refreshDeviceStatus(Intent intent){
-        int color = intent.getIntExtra("colorOne", Color.RED);
-        deviceStatusColor.setBackgroundColor(color);
+        int colorOne = intent.getIntExtra("colorOne", Color.RED);
+        int colorTwo = intent.getIntExtra("colorTwo", Color.RED);
+        if (colorOne == Color.GREEN || colorTwo == Color.GREEN) {
+            deviceStatusColor.setBackgroundColor(Color.GREEN);
+        } else if (colorOne == Color.YELLOW || colorTwo == Color.YELLOW) {
+            deviceStatusColor.setBackgroundColor(Color.YELLOW);
+        } else {
+            deviceStatusColor.setBackgroundColor(Color.RED);
+        }
     }
 
 //    private void refreshView(Intent intent) {

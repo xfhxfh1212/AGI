@@ -500,6 +500,7 @@ public class CellMonitorActivity extends AppCompatActivity {
         Map<Status.BoardType, List<MonitorDevice>> deviceMap = distributeMonitorDevices();
         Map<Status.BoardType, List<CellInfo>> cellInfoMap = distributeCellInfo();
         if (validate(deviceMap, cellInfoMap)) {
+
             distributeToMonitor(deviceMap, cellInfoMap);
 
             Intent intent = new Intent(this, MainMenuActivity.class);
@@ -532,6 +533,9 @@ public class CellMonitorActivity extends AppCompatActivity {
 
     private void distributeToMonitor(Map<Status.BoardType, List<MonitorDevice>> deviceMap,
                                      Map<Status.BoardType, List<CellInfo>> cellInfoMap) {
+        for(MonitorDevice device : DeviceManager.getInstance().getDevices()) {
+            device.setCellInfo(null);
+        }
         for (Status.BoardType type : Status.BoardType.values()) {
             List<CellInfo> cellInfoList = cellInfoMap.get(type);
             for (int index = 0; index < cellInfoList.size(); index++) {

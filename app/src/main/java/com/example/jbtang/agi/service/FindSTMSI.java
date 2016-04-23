@@ -7,6 +7,7 @@ import android.os.Message;
 import android.support.annotation.NonNull;
 import android.util.Log;
 import android.util.Pair;
+import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -38,6 +39,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.TreeSet;
 
 
@@ -55,11 +58,13 @@ public class FindSTMSI {
     private myHandler handler;
     private Trigger trigger;
     private CheckBox filterCheckBox;
+    private Button startBtn;
     private Status.Service service;
     public int stmsiCount;
     public int sumCount;
     public int nullCount;
     private Date interferenceTime;
+    private Map<String, Timer> timerMap;
     public List<CountSortedInfo> getCountSortedInfoList() {
         countSortedInfoList.clear();
         CountSortedInfo info;
@@ -78,6 +83,8 @@ public class FindSTMSI {
         handler = new myHandler(this);
         //trigger = Global.Configuration.type == Status.TriggerType.SMS? SMSTrigger.getInstance(): PhoneTrigger.getInstance();
         trigger = SMSTrigger.getInstance();
+        timerMap = new HashMap<>();
+
     }
 
     public static FindSTMSI getInstance() {
@@ -119,14 +126,42 @@ public class FindSTMSI {
         if(activity.getLocalClassName().equals("ui.FindSTMSIActivity")) {
 
             filterCheckBox = (CheckBox) activity.findViewById(R.id.find_stmsi_filter_checkbox);
+            startBtn = (Button) activity.findViewById(R.id.find_stmsi_start_button);
             service = Status.Service.FINDSTMIS;
             trigger.start(activity, service);
         }else {
             service = Status.Service.INTERFERENCE;
             trigger.start(activity, service);
         }
+        for (MonitorDevice device : DeviceManager.getInstance().getDevices()) {
+            timerMap.put(device.getName(), new Timer());
+        }
+        for(Map.Entry<String, Timer> entry : timerMap.entrySet()) {
+            entry.getValue().schedule(new MyTimerTask(entry.getKey()), 10000);
+        }
     }
+    private class MyTimerTask extends TimerTask {
+        private String mName;
+        public MyTimerTask(String name) {
+            mName = name;
+        }
+        @Override
+        public void run() {
+            MonitorDevice device = DeviceManager.getInstance().getDevice(mName);
+            if(device.isWorking()) {
+                device.reboot();
+                timerMap.get(mName).cancel();
+                timerMap.remove(mName);
+                Toast.makeText(currentActivity, String.format("%d小区驻留失败，%s正在恢复初始状态！", device.getCellInfo().pci, mName), Toast.LENGTH_SHORT).show();
+                if(timerMap.isEmpty()) {
+                    trigger.stop();
+                    startBtn.setEnabled(true);
+                    Toast.makeText(currentActivity, "搜索已停止！", Toast.LENGTH_SHORT).show();
+                }
 
+            }
+        }
+    }
     public void stop() {
         trigger.stop();
     }
@@ -136,26 +171,20 @@ public class FindSTMSI {
         MsgL2P_AG_CELL_CAPTURE_IND msg = new MsgL2P_AG_CELL_CAPTURE_IND(globalMsg.getBytes());
         Status.DeviceWorkingStatus status = msg.getMu16Rsrp() == 0 ? Status.DeviceWorkingStatus.ABNORMAL : Status.DeviceWorkingStatus.NORMAL;
         Float rsrp = msg.getMu16Rsrp()*1.0F;
-        DeviceManager.getInstance().getDevice(globalMsg.getDeviceName()).setWorkingStatus(status);
-        DeviceManager.getInstance().getDevice(globalMsg.getDeviceName()).getCellInfo().rsrp = rsrp;
+        MonitorDevice monitorDevice = DeviceManager.getInstance().getDevice(globalMsg.getDeviceName());
+        monitorDevice.setWorkingStatus(status);
+        monitorDevice.getCellInfo().rsrp = rsrp;
         Log.e(TAG, String.format("==========status : %s, rsrp : %f ============", status.name(), rsrp));
         Log.e("cell_capture", "mu16PCI:" + msg.getMu16PCI() + " mu16EARFCN:" + msg.getMu16EARFCN() + " mu16TAC:" + msg.getMu16TAC() + " mu16Rsrp:" + msg.getMu16Rsrp() + " mu16Rsrq:" + msg.getMu16Rsrq());
-        if(status == Status.DeviceWorkingStatus.ABNORMAL){
-            try {
+        timerMap.get(monitorDevice.getName()).cancel();
+        if(status == Status.DeviceWorkingStatus.ABNORMAL) {
+            timerMap.remove(monitorDevice.getName());
+            if (timerMap.isEmpty()) {
                 trigger.stop();
-                DeviceManager.getInstance().getDevice(globalMsg.getDeviceName()).reboot();
-                currentActivity.runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        new AlertDialog.Builder(currentActivity)
-                                .setTitle("注意")
-                                .setMessage("小区驻留失败，设备正在恢复初始状态，稍后请手动连接！")
-                                .setPositiveButton("确定", null)
-                                .show();
-                    }
-                });
-            }catch (Exception e){
-                e.printStackTrace();
+                startBtn.setEnabled(true);
+                Toast.makeText(currentActivity, "搜索已停止！", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(currentActivity, String.format("%d小区驻留失败！",msg.getMu16PCI()), Toast.LENGTH_SHORT).show();
             }
         }
     }

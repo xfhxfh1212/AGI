@@ -2,13 +2,16 @@ package com.example.jbtang.agi.ui;
 
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -21,16 +24,18 @@ import com.example.jbtang.agi.dao.users.UserDBManager;
 import java.util.List;
 
 public class LoginFragment extends Fragment {
-
+    private final static String CONFIG_DERECTORY = "configure";
     private Button loginBtn;
     private Button manageBtn;
     private EditText usernameEdt;
     private EditText passwordEdt;
     private TextView countText;
+    private CheckBox rememberCheck;
     private UserDBManager dmgr;
     private List<User> users;
     private FragmentTransaction fragmentTransaction;
     private UserManageFragment userManageFragment;
+    private SharedPreferences sharedPreferences;
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -47,12 +52,14 @@ public class LoginFragment extends Fragment {
         countText = (TextView) view.findViewById(R.id.welcome_count_edit);
         loginBtn = (Button) view.findViewById(R.id.welcome_login_button);
         manageBtn = (Button) view.findViewById(R.id.welcome_manage_button);
+        rememberCheck = (CheckBox) view.findViewById(R.id.welcome_remember_checkbox);
+        sharedPreferences =  getActivity().getSharedPreferences(CONFIG_DERECTORY, Context.MODE_PRIVATE);
 
         dmgr = new UserDBManager(getActivity());
         users = dmgr.listDB();
-        if(users.size() == 0) {
-            User adminUser = new User(UserDBHelper.ADMIN,UserDBHelper.ADMIN,null);
-            User normalUser = new User(UserDBHelper.DEFAUL_NAME,UserDBHelper.DEFAUL_PASSWORD,UserDBHelper.DEFAUL_COUNT);
+        if (users.size() == 0) {
+            User adminUser = new User(UserDBHelper.ADMIN, UserDBHelper.ADMIN, null);
+            User normalUser = new User(UserDBHelper.DEFAUL_NAME, UserDBHelper.DEFAUL_PASSWORD, UserDBHelper.DEFAUL_COUNT);
             users.add(adminUser);
             users.add(normalUser);
             dmgr.add(users);
@@ -60,31 +67,49 @@ public class LoginFragment extends Fragment {
             usernameEdt.setText(normalUser.name);
             passwordEdt.setText(normalUser.password);
             countText.setText(normalUser.count);
-        }else{
-            usernameEdt.setText(users.get(1).name);
-            passwordEdt.setText(users.get(1).password);
-            countText.setText(users.get(1).count);
+        } else {
+            String username = sharedPreferences.getString("username", "");
+            if (username.equals("")) {
+                rememberCheck.setChecked(false);
+            } else {
+                rememberCheck.setChecked(true);
+                for (User user : users) {
+                    if (user.name.equals(username)) {
+                        usernameEdt.setText(user.name);
+                        passwordEdt.setText(user.password);
+                        countText.setText(user.count);
+                        break;
+                    }
+                }
+            }
         }
-
 
         loginBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 String username = usernameEdt.getText().toString();
                 String password = passwordEdt.getText().toString();
-                for(User user : users){
-                    if(username.equals(user.name) && password.equals(user.password)){
-                        if(!username.equals(UserDBHelper.ADMIN) ){
+                for (User user : users) {
+                    if (username.equals(user.name) && password.equals(user.password)) {
+                        if (!username.equals(UserDBHelper.ADMIN)) {
                             int count = Integer.valueOf(user.count);
-                            if(count == 0){
-                                Toast.makeText(getActivity(),"剩余使用次数不足，无法登陆！",Toast.LENGTH_LONG);
+                            if (count == 0) {
+                                Toast.makeText(getActivity(), "剩余使用次数不足，无法登陆！", Toast.LENGTH_LONG);
                                 return;
-                            }else{
+                            } else {
                                 count--;
+                                Toast.makeText(getActivity(), "剩余使用次数:" + count, Toast.LENGTH_LONG).show();
                                 dmgr.updateCount(user.name, String.valueOf(count));
                             }
                         }
-                        startActivity(new Intent(getActivity(),MainMenuActivity.class));
+                        SharedPreferences.Editor editor = sharedPreferences.edit();
+                        if (rememberCheck.isChecked()) {
+                            editor.putString("username", username);
+                        } else {
+                            editor.putString("username", "");
+                        }
+                        editor.commit();
+                        startActivity(new Intent(getActivity(), MainMenuActivity.class));
                         getActivity().finish();
                     }
                 }

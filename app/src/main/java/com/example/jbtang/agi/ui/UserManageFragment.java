@@ -13,6 +13,7 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -29,6 +30,7 @@ import java.util.List;
  * A simple {@link Fragment} subclass.
  */
 public class UserManageFragment extends Fragment {
+
     private UserDBManager dmgr;
     private List<User> users;
     private ListView listView;
@@ -136,7 +138,7 @@ public class UserManageFragment extends Fragment {
         if(position != -1) {
             usernameEdt.setText(users.get(position).name);
             passwordEdt.setText(users.get(position).password);
-            countEdt.setText(null);
+            countEdt.setText(users.get(position).count);
             usernameEdt.setEnabled(false);
         }
         deleteBtn.setOnClickListener(new View.OnClickListener(){
@@ -159,14 +161,21 @@ public class UserManageFragment extends Fragment {
         updateBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                if(usernameEdt.getText().toString().isEmpty()
+                        || passwordEdt.getText().toString().isEmpty()
+                        || countEdt.getText().toString().isEmpty()
+                        || !countEdt.getText().toString().matches("[0-9]*")){
+                    return;
+                }
                 String name = usernameEdt.getText().toString();
                 String password = passwordEdt.getText().toString();
                 String count = countEdt.getText().toString();
                 User temUser = new User(name, password, count);
                 for(int i = 0; i < users.size(); i++){
-                    if(users.get(0).name.equals(name)){
-                        users.set(0,temUser);
+                    if(users.get(i).name.equals(name)){
                         break;
+                    } else if(i == users.size() - 1) {
+                        users.add(temUser);
                     }
                 }
                 ((MyAdapter)listView.getAdapter()).notifyDataSetChanged();

@@ -101,9 +101,9 @@ public class SMSTrigger implements Trigger {
 
         @Override
         public void run() {
-            if (smsCount == Global.Configuration.triggerTotalCount) {
-                future.cancel(true);
-            }
+//            if (smsCount == Global.Configuration.triggerTotalCount) {
+//                future.cancel(true);
+//            }
             if(!startMonitor) {
                 for (MonitorDevice device : DeviceManager.getInstance().getDevices()) {
                     device.startMonitor(Status.Service.FINDSTMIS);
@@ -131,9 +131,9 @@ public class SMSTrigger implements Trigger {
 
         @Override
         public void run() {
-            if (smsCount == Global.Configuration.triggerTotalCount) {
-                future.cancel(true);
-            }
+//            if (smsCount == Global.Configuration.triggerTotalCount) {
+//                future.cancel(true);
+//            }
             if(!startMonitor) {
                 for (MonitorDevice device : DeviceManager.getInstance().getDevices()) {
                     device.startMonitor(Status.Service.FINDSTMIS);

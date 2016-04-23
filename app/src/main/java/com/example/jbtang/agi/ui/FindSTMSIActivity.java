@@ -315,8 +315,15 @@ public class FindSTMSIActivity extends AppCompatActivity {
         }
     }
     private void refreshDeviceStatus(Intent intent){
-        int color = intent.getIntExtra("colorOne", Color.RED);
-        deviceStatusColor.setBackgroundColor(color);
+        int colorOne = intent.getIntExtra("colorOne", Color.RED);
+        int colorTwo = intent.getIntExtra("colorTwo", Color.RED);
+        if (colorOne == Color.GREEN || colorTwo == Color.GREEN) {
+            deviceStatusColor.setBackgroundColor(Color.GREEN);
+        } else if (colorOne == Color.YELLOW || colorTwo == Color.YELLOW) {
+            deviceStatusColor.setBackgroundColor(Color.YELLOW);
+        } else {
+            deviceStatusColor.setBackgroundColor(Color.RED);
+        }
     }
     /**
      * for count ListView
@@ -351,15 +358,15 @@ public class FindSTMSIActivity extends AppCompatActivity {
                 if (FindSTMSI.getInstance().stmsiCount < STMSICountMaxValuePerMinute) {
                     FindSTMSI.getInstance().stmsiCount = 0;
                 } else {
-                    FindSTMSI.getInstance().stop();
-                    startToFind = false;
+                    //FindSTMSI.getInstance().stop();
+                    //startToFind = false;
                     FindSTMSIActivity.this.runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            startButton.setEnabled(true);
+                            //startButton.setEnabled(true);
                             new AlertDialog.Builder(FindSTMSIActivity.this)
                                     .setTitle("注意")
-                                    .setMessage("该处STMSI过多，设备已停止!")
+                                    .setMessage("该处STMSI过多，不适合工作!")
                                     .setPositiveButton("确定", null)
                                     .show();
                         }

@@ -14,6 +14,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.Future;
 
 import ch.ethz.ssh2.Connection;
 import ch.ethz.ssh2.Session;
@@ -39,6 +42,7 @@ public class MonitorDevice extends Device {
     private Status.DeviceWorkingStatus workingStatus;
     private Status.PingResult pingStatus;
     private boolean pingStart;
+    private Timer timer;
 
     public Status.PingResult getPingStatus() {
         return pingStatus;
@@ -119,6 +123,7 @@ public class MonitorDevice extends Device {
             default:
                 break;
         }
+
     }
 
     private boolean validateCellInfo() {
@@ -245,5 +250,26 @@ public class MonitorDevice extends Device {
             e.printStackTrace();
         }
 
+    }
+
+    public void checkCellCapture() {
+        timer = new Timer();
+        TimerTask timerTask = new TimerTask() {
+            @Override
+            public void run() {
+                Log.e(TAG,"重启设备");
+                reboot();
+                //cancleCheckCellCaoture();
+            }
+        };
+        timer.schedule(timerTask,10000);
+        Log.e(TAG,"开始计时");
+    }
+    public void cancleCheckCellCaoture() {
+        if(timer != null) {
+            timer.cancel();
+            timer = null;
+            Log.e(TAG,"计时取消");
+        }
     }
 }
