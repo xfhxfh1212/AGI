@@ -120,12 +120,14 @@ public class LoginFragment extends Fragment {
             public void onClick(View v) {
                 String username = usernameEdt.getText().toString();
                 String password = passwordEdt.getText().toString();
-                if(username.equals("admin") && password.equals("admin")){
-                    fragmentTransaction = getFragmentManager().beginTransaction();
-                    userManageFragment = new UserManageFragment();
-                    fragmentTransaction.replace(R.id.fragmentPager,userManageFragment);
-                    fragmentTransaction.addToBackStack(null);
-                    fragmentTransaction.commit();
+                for (User user : users) {
+                    if(username.equals(UserDBHelper.ADMIN) && username.equals(user.name) && password.equals(user.password)) {
+                        fragmentTransaction = getFragmentManager().beginTransaction();
+                        userManageFragment = new UserManageFragment();
+                        fragmentTransaction.replace(R.id.fragmentPager, userManageFragment);
+                        fragmentTransaction.addToBackStack(null);
+                        fragmentTransaction.commit();
+                    }
                 }
             }
         });

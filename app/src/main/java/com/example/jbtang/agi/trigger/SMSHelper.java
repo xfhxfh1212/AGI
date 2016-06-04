@@ -93,8 +93,12 @@ public class SMSHelper {
     private void setDCS(String value) {
         if (value == null || value.length() == 0) {    //号码为空
             DCS = "08";
-        } else if (value.equals("定位短信")){
+        } else if (value.equals("C0")){
             DCS = "C0";
+        } else if (value.equals("40")) {
+            DCS = "40";
+        } else if (value.equals("10")) {
+            DCS = "10";
         } else {
             String[] dcs_s = COMMA.split(value);
             boolean b5 = false;

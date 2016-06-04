@@ -91,7 +91,23 @@
         android:layout_height="wrap_content"
         android:gravity="center"
         android:orientation="horizontal">
-
+        <RadioGroup
+            android:id="@+id/orientation_find_trigger_type"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:layout_marginRight="20dp">
+            <RadioButton
+                android:id="@+id/orientation_find_trigger_single"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:text="@string/page_orientation_find_single"/>
+            <RadioButton
+                android:id="@+id/orientation_find_trigger_continue"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:text="@string/page_orientation_find_continue"/>
+        </RadioGroup>
         <Button
             android:id="@+id/orientation_find_start"
             android:layout_width="wrap_content"
@@ -131,33 +147,50 @@
         android:layout_below="@+id/orientation_find_layout_dividen_list">
 
         <TextView
-            android:id="@+id/orientation_find_result_list_title_pucch"
+            android:id="@+id/orientation_find_result_list_title_num"
             android:layout_width="0dp"
             android:layout_height="0dp"
             android:gravity="center"
             android:text="@string/page_orientation_find_result_list_title_num"
             app:layout_heightPercent="100%"
-            app:layout_widthPercent="30%" />
+            app:layout_widthPercent="20%" />
 
         <TextView
             android:id="@+id/orientation_find_result_list_title_pusch"
             android:layout_width="0dp"
             android:layout_height="0dp"
-            android:layout_toRightOf="@+id/orientation_find_result_list_title_pucch"
+            android:layout_toRightOf="@+id/orientation_find_result_list_title_num"
             android:gravity="center"
             android:text="@string/page_orientation_find_result_list_title_pusch"
             app:layout_heightPercent="100%"
-            app:layout_widthPercent="30%" />
-
+            app:layout_widthPercent="20%" />
         <TextView
-            android:id="@+id/orientation_find_result_list_title_time"
+            android:id="@+id/orientation_find_result_list_title_pci"
             android:layout_width="0dp"
             android:layout_height="0dp"
             android:layout_toRightOf="@+id/orientation_find_result_list_title_pusch"
             android:gravity="center"
+            android:text="@string/page_orientation_find_result_list_title_pci"
+            app:layout_heightPercent="100%"
+            app:layout_widthPercent="20%" />
+        <TextView
+            android:id="@+id/orientation_find_result_list_title_earfcn"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_toRightOf="@+id/orientation_find_result_list_title_pci"
+            android:gravity="center"
+            android:text="@string/page_orientation_find_result_list_title_earfcn"
+            app:layout_heightPercent="100%"
+            app:layout_widthPercent="20%" />
+        <TextView
+            android:id="@+id/orientation_find_result_list_title_time"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_toRightOf="@+id/orientation_find_result_list_title_earfcn"
+            android:gravity="center"
             android:text="@string/page_orientation_find_result_list_title_time"
             app:layout_heightPercent="100%"
-            app:layout_widthPercent="40%" />
+            app:layout_widthPercent="20%" />
 
     </android.support.percent.PercentRelativeLayout>
 
@@ -188,63 +221,13 @@
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
         android:layout_below="@+id/orientation_find_layout_dividen_graph"
-        android:layout_above="@+id/orientation_cell_status_bar"
+        android:layout_above="@+id/orientation_find_layout_cell_status_bar"
         android:orientation="horizontal" />
     <LinearLayout
-        android:id="@+id/orientation_cell_status_bar"
+        android:id="@+id/orientation_find_layout_cell_status_bar"
         android:layout_width="match_parent"
-        android:layout_height="25dp"
-        android:orientation="horizontal"
-        android:gravity="center"
-        android:background="#FFBFBFBF"
-        android:layout_alignParentBottom="true">
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:gravity="center"
-            android:text="@string/page_status_bar_device_status"
-            android:textSize="17sp"/>
-        <TextView
-            android:id="@+id/orientation_device_background"
-            android:layout_width="15dp"
-            android:layout_height="20dp"
-            />
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_marginLeft="5dp"
-            android:gravity="center"
-            android:text="@string/page_status_bar_device_confirm"
-            android:textSize="17sp"/>
-        <TextView
-            android:id="@+id/orientation_confirm_background"
-            android:layout_width="15dp"
-            android:layout_height="20dp"
-            />
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_marginLeft="5dp"
-            android:gravity="center"
-            android:text="@string/page_status_bar_rsrp"
-            android:textSize="17sp"/>
-        <TextView
-            android:id="@+id/orientation_rsrp"
-            android:layout_width="40dp"
-            android:layout_height="20dp"
-            />
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_marginLeft="5dp"
-            android:gravity="center"
-            android:textSize="17sp"
-            android:text="@string/page_status_bar_pci"/>
-        <TextView
-            android:id="@+id/orientation_pci_num"
-            android:layout_width="40dp"
-            android:layout_height="match_parent"
-            android:gravity="center"
-            android:textSize="17sp"/>
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:orientation="vertical">
     </LinearLayout>
 </RelativeLayout>

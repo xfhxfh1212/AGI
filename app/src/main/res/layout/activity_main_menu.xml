@@ -59,9 +59,15 @@
         android:gravity="center"
         android:layout_marginTop="20dp">
         <Button
+            android:id="@+id/main_menu_device_reboot"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/page_main_menu_device_reboot"/>
+        <Button
             android:id="@+id/main_menu_device_connnect"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginLeft="30dp"
             android:text="@string/page_main_menu_device_connect"/>
         <Button
             android:id="@+id/main_menu_device_disconnect"
@@ -79,11 +85,10 @@
         android:background="#FFBFBFBF"
         android:layout_alignParentBottom="true">
         <TextView
-            android:layout_width="100dp"
+            android:layout_width="80dp"
             android:layout_height="match_parent"
             android:text="@string/page_status_bar_device_status"
-            android:textSize="17sp"
-            android:gravity="center"/>
+            android:textSize="17sp"/>
         <TextView
             android:id="@+id/main_menu_device_status_text"
             android:layout_width="100dp"
@@ -91,7 +96,7 @@
             android:gravity="center_vertical"
             android:textSize="17sp"/>
         <TextView
-            android:layout_width="60dp"
+            android:layout_width="30dp"
             android:layout_height="match_parent"
             android:gravity="center"
             android:text="@string/page_status_bar_agi_one"
@@ -102,14 +107,35 @@
             android:layout_height="20dp"
             />
         <TextView
-            android:layout_width="60dp"
+            android:layout_width="30dp"
             android:layout_height="match_parent"
             android:gravity="center"
             android:text="@string/page_status_bar_agi_two"
-
             android:textSize="17sp"/>
         <TextView
             android:id="@+id/main_menu_device_background_two"
+            android:layout_width="15dp"
+            android:layout_height="20dp"
+            />
+        <TextView
+            android:layout_width="30dp"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:text="@string/page_status_bar_agi_three"
+            android:textSize="17sp"/>
+        <TextView
+            android:id="@+id/main_menu_device_background_three"
+            android:layout_width="15dp"
+            android:layout_height="20dp"
+            />
+        <TextView
+            android:layout_width="30dp"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:text="@string/page_status_bar_agi_four"
+            android:textSize="17sp"/>
+        <TextView
+            android:id="@+id/main_menu_device_background_four"
             android:layout_width="15dp"
             android:layout_height="20dp"
             />

@@ -66,6 +66,11 @@ public class MonitorDevice extends Device {
 
     public void setCellInfo(CellInfo cellInfo) {
         this.cellInfo = cellInfo;
+        if(cellInfo == null) {
+            this.isReadyToMonitor = false;
+        } else {
+            this.isReadyToMonitor = true;
+        }
     }
 
     public MonitorDevice(String name, String IP, Status.BoardType type) {
@@ -84,10 +89,7 @@ public class MonitorDevice extends Device {
         if (pingStatus == Status.PingResult.FAILED) {
             return false;
         }
-        if (status == Status.DeviceStatus.DISCONNECTED) {
-            return false;
-        }
-        if (!isReadyToMonitor) {
+        if (status == Status.DeviceStatus.DISCONNECTED || status == Status.DeviceStatus.DISCONNECTING) {
             return false;
         }
         if (status == Status.DeviceStatus.WORKING) {
@@ -148,13 +150,15 @@ public class MonitorDevice extends Device {
         }
         send(GetFrequentlyUsedMsg.protocalTraceRelMsg);
     }
-
+    public boolean getIsReadyToMonitor(){
+        return this.isReadyToMonitor;
+    }
     public void setIsReadyToMonitor(boolean isReadyToMonitor) {
         this.isReadyToMonitor = isReadyToMonitor;
     }
 
     private void ping() {
-        pingStatus = Status.PingResult.FAILED;
+        //pingStatus = Status.PingResult.FAILED;
         Process p;
         try {
             p = Runtime.getRuntime().exec("ping -c 1 -w 1000 " + IP);
@@ -195,51 +199,7 @@ public class MonitorDevice extends Device {
         }
     }
 
-    public void reboot()  {
-        Global.ThreadPool.cachedThreadPool.execute(new Runnable() {
-            @Override
-            public void run() {
-                checkStatusStart = false;
-                Connection conn = null;
-                Session session = null;
 
-                try {
-                    conn = new Connection(getIP());
-                    conn.connect();
-                    boolean isAuthenticated = conn.authenticateWithPassword(REBOOT_USERNAME, REBOOT_PASSWORD);
-
-                    if (!isAuthenticated) {
-                        Log.e(TAG, "Authentication failed.");
-                    }
-
-                    session = conn.openSession();
-                    session.execCommand(REBOOT_CMD);
-
-                    Log.e(TAG, "Here is some information about the remote host:");
-
-                    InputStream stdout = new StreamGobbler(session.getStdout());
-
-                    BufferedReader br = new BufferedReader(new InputStreamReader(stdout));
-
-                    while (true) {
-                        String line = br.readLine();
-                        if (line == null)
-                            break;
-                        Log.e(TAG, line);
-                    }
-                    //Thread.sleep(3000);
-                    //status = Status.DeviceStatus.DISCONNECTED;
-                    disconnect();
-                    Log.e(TAG, "ExitCode: " + session.getExitStatus());
-                } catch (Exception e) {
-                    e.printStackTrace();
-                } finally {
-                    session.close();
-                    conn.close();
-                }
-            }
-        });
-    }
 
     public void release() {
         try {

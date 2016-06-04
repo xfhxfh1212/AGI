@@ -27,7 +27,7 @@ public class CellInfo {
         if ((0 <= earfcn && earfcn <= 599) || (1200 <= earfcn && earfcn <= 1949)) {
             return Status.BoardType.FDD;
         }
-        if ((37750 <= earfcn && earfcn <= 39649) || (40240 <= earfcn && earfcn <= 40439)) {
+        if ((37750 <= earfcn && earfcn <= 39649) || (39650 <= earfcn && earfcn <= 41589)) {
             return Status.BoardType.TDD;
         }
         throw new IllegalArgumentException("Invalid earfcn!!!");

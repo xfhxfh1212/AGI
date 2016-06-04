@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/interference_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical">
@@ -224,69 +225,17 @@
         android:layout_below="@+id/interference_layout_count_list_title"/>
     <ListView
         android:layout_below="@+id/interference_layout_devide_line"
-        android:layout_above="@+id/interference_cell_status_bar"
         android:id="@+id/interference_count_listView"
+        android:layout_above="@+id/interference_layout_cell_status_bar"
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
         android:divider="#000000"
         android:dividerHeight="1dip"/>
-
     <LinearLayout
-        android:id="@+id/interference_cell_status_bar"
+        android:id="@+id/interference_layout_cell_status_bar"
         android:layout_width="match_parent"
-        android:layout_height="25dp"
-        android:orientation="horizontal"
-        android:gravity="center"
-        android:background="#BFBFBF"
-        android:layout_alignParentBottom="true">
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:gravity="center"
-            android:text="@string/page_status_bar_device_status"
-            android:textSize="17sp"/>
-        <TextView
-            android:id="@+id/interference_device_background"
-            android:layout_width="15dp"
-            android:layout_height="20dp"
-            />
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_marginLeft="5dp"
-            android:gravity="center"
-            android:text="@string/page_status_bar_device_confirm"
-            android:textSize="17sp"/>
-        <TextView
-            android:id="@+id/interference_confirm_background"
-            android:layout_width="15dp"
-            android:layout_height="20dp"
-            />
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_marginLeft="5dp"
-            android:gravity="center"
-            android:text="@string/page_status_bar_rsrp"
-            android:textSize="17sp"/>
-        <TextView
-            android:id="@+id/interference_rsrp"
-            android:layout_width="40dp"
-            android:layout_height="20dp"
-            />
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_marginLeft="5dp"
-            android:gravity="center"
-            android:textSize="17sp"
-            android:text="@string/page_status_bar_pci"/>
-        <TextView
-            android:id="@+id/interference_pci_num"
-            android:layout_width="40dp"
-            android:layout_height="match_parent"
-            android:gravity="center"
-            android:textSize="17sp"/>
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:orientation="vertical">
     </LinearLayout>
-
 </RelativeLayout>

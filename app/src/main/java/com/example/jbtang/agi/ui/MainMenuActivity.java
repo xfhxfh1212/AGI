@@ -3,6 +3,7 @@ import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
@@ -65,12 +66,14 @@ public class MainMenuActivity extends AppCompatActivity {
     private long exitTime = 0;
     private EditText phoneNum;
     private Button saveBtn;
+    private Button rebootBtn;
     private Button connectBtn;
     private Button disconnectBtn;
     private TextView deviceStatusText;
     private TextView deviceColorOne;
     private TextView deviceColorTwo;
-    private List<MonitorDevice> devices;
+    private TextView deviceColorThree;
+    private TextView deviceColorFour;
     private DeviceDBManager dmgr;
     private ConfigurationDBManager cmgr;
     private ConfigurationDAO dao;
@@ -115,17 +118,21 @@ public class MainMenuActivity extends AppCompatActivity {
         phoneNum = (EditText) findViewById(R.id.main_menu_target_phone_num);
         saveBtn = (Button) findViewById(R.id.main_menu_target_phone_num_save);
 
+        rebootBtn = (Button) findViewById(R.id.main_menu_device_reboot);
         connectBtn = (Button) findViewById(R.id.main_menu_device_connnect);
         disconnectBtn = (Button) findViewById(R.id.main_menu_device_disconnect);
-        connectBtn.setOnClickListener(new conBtnOnclickListener());
-        disconnectBtn.setOnClickListener(new disconBtnOnclickListener());
+        rebootBtn.setOnClickListener(new rebootBtnOnClickListener());
+        connectBtn.setOnClickListener(new conBtnOnClickListener());
+        disconnectBtn.setOnClickListener(new disconBtnOnClickListener());
 
         deviceColorOne = (TextView) findViewById(R.id.main_menu_device_background_one);
         deviceColorTwo = (TextView) findViewById(R.id.main_menu_device_background_two);
+        deviceColorThree = (TextView) findViewById(R.id.main_menu_device_background_three);
+        deviceColorFour = (TextView) findViewById(R.id.main_menu_device_background_four);
         deviceStatusText = (TextView) findViewById(R.id.main_menu_device_status_text);
 
         dmgr = new DeviceDBManager(this);
-        devices = getDevices();
+        getDevices();
 
         cmgr = new ConfigurationDBManager(this);
         dao = cmgr.getConfiguration(Global.UserInfo.user_name);
@@ -197,10 +204,21 @@ public class MainMenuActivity extends AppCompatActivity {
     @Override
     public void onDestroy() {
         monitorHelper.stopService(this);
+        for(MonitorDevice device:DeviceManager.getInstance().getAllDevices()){
+            try {
+                device.disconnect();
+                DeviceManager.getInstance().remove(device.getName());
+            } catch (Exception e) {
+            }
+        }
         super.onDestroy();
     }
     @Override
     protected void onResume() {
+        for(MonitorDevice device:DeviceManager.getInstance().getAllDevices()) {
+            if (device.isConnected())
+                DeviceManager.getInstance().add(device);
+        }
         Log.e("test", "onResume");
         super.onResume();
     }
@@ -247,44 +265,75 @@ public class MainMenuActivity extends AppCompatActivity {
             }
         }
     }
-    class conBtnOnclickListener implements View.OnClickListener{
+    class rebootBtnOnClickListener implements View.OnClickListener {
 
         @Override
         public void onClick(View v) {
-            for(MonitorDevice device:devices){
+            new AlertDialog.Builder(MainMenuActivity.this)
+                    .setTitle(R.string.title_main_menu_device_reboot_confirm)
+                    .setPositiveButton(R.string.page_main_menu_device_reboot_confirm_cancel,null)
+                    .setNegativeButton(R.string.page_main_menu_device_reboot_confrim_ok, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            rebootConfirm();
+                        }
+                    }).show();
+
+        }
+    }
+    private void rebootConfirm() {
+        for(MonitorDevice device : DeviceManager.getInstance().getDevices()) {
+            device.reboot();
+        }
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(MainMenuActivity.this, "设备重启中!", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+    class conBtnOnClickListener implements View.OnClickListener{
+        @Override
+        public void onClick(View v) {
+            for(MonitorDevice device:DeviceManager.getInstance().getAllDevices()){
                 try {
                     device.connect();
                     //Thread.sleep(1000);
-                    if(device.isConnected())
+                    if(device.isConnected()) {
                         DeviceManager.getInstance().add(device);
+                        Log.e("Test","连接设备：" + device.getName());
+                    }
                 } catch (Exception e) {
                 }
             }
-            Log.e("Test",String.valueOf(DeviceManager.getInstance().getDevices().size()));
+            Log.e("Test","连接设备数："+String.valueOf(DeviceManager.getInstance().getDevices().size()));
         }
     }
-    class disconBtnOnclickListener implements View.OnClickListener{
+    class disconBtnOnClickListener implements View.OnClickListener{
 
         @Override
         public void onClick(View v) {
-            for(MonitorDevice device:devices){
+            for(MonitorDevice device:DeviceManager.getInstance().getAllDevices()){
                 try {
-                    DeviceManager.getInstance().remove(device.getName());
                     device.disconnect();
+                    DeviceManager.getInstance().remove(device.getName());
                 } catch (Exception e) {
                 }
             }
+            Log.e("Test","连接设备数："+String.valueOf(DeviceManager.getInstance().getDevices().size()));
         }
     }
 
-    private List<MonitorDevice> getDevices() {
-        List<MonitorDevice> devices = new ArrayList<>();
+    private void getDevices() {
         List<DeviceDAO> deviceDAOs = dmgr.listDB();
+
         for (DeviceDAO dao : deviceDAOs) {
-            devices.add(new MonitorDevice(dao.name, dao.ip, dao.type));
+            MonitorDevice device = new MonitorDevice(dao.name, dao.ip, dao.type);
+            if(DeviceManager.getInstance().getFromAll(device.getName()) == null) {
+                DeviceManager.getInstance().addToAll(device);
+            }
             Log.e(TAG, "deviceAdd" + dao.ip);
         }
-        return devices;
     }
 
      private class myBroadcastReceiver extends BroadcastReceiver{
@@ -293,14 +342,19 @@ public class MainMenuActivity extends AppCompatActivity {
         public void onReceive(Context context, Intent intent) {
             // TODO Auto-generated method stub
             if(intent.getAction().equals(MonitorApplication.BROAD_FROM_MAIN_MENU_DEVICE)) {
-                final int colorOne = intent.getIntExtra("colorOne", 0xFFFF0000);
-                final int colorTwo = intent.getIntExtra("colorTwo", 0xFFFF0000);
-                final String statusText = intent.getStringExtra("statusText");
+                Bundle bundle = intent.getExtras();
+                final int colorOne = bundle.getInt("colorOne");
+                final int colorTwo = bundle.getInt("colorTwo");
+                final int colorThree = bundle.getInt("colorThree");
+                final int colorFour = bundle.getInt("colorFour");
+                final String statusText = bundle.getString("statusText");
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         deviceColorOne.setBackgroundColor(colorOne);
                         deviceColorTwo.setBackgroundColor(colorTwo);
+                        deviceColorThree.setBackgroundColor(colorThree);
+                        deviceColorFour.setBackgroundColor(colorFour);
                         deviceStatusText.setText(statusText);
                     }
                 });
@@ -313,7 +367,8 @@ public class MainMenuActivity extends AppCompatActivity {
                         String name = intent.getStringExtra("name");
                         String ip = intent.getStringExtra("ip");
                         Status.BoardType type = (Status.BoardType) intent.getSerializableExtra("type");
-                        devices.add(new MonitorDevice(name, ip, type));
+                        DeviceManager.getInstance().addToAll(new MonitorDevice(name, ip, type));
+                        Log.e(TAG,"AllDevices Size" + DeviceManager.getInstance().getAllDevices().size());
                         break;
                     }
                     case ConfigurationActivity.DELETE_DEVICE_FLAG: {
@@ -323,14 +378,8 @@ public class MainMenuActivity extends AppCompatActivity {
                             device.release();
                             DeviceManager.getInstance().remove(name);
                         }
-                        Iterator iterator = devices.iterator();
-                        while (iterator.hasNext()) {
-                            MonitorDevice temDevice = (MonitorDevice) iterator.next();
-                            if (temDevice.getName().equals(name)) {
-                                temDevice.release();
-                                iterator.remove();
-                            }
-                        }
+                        DeviceManager.getInstance().removeFromAll(name);
+                        Log.e(TAG,"AllDevices Size" + DeviceManager.getInstance().getAllDevices().size());
                         break;
                     }
                     case ConfigurationActivity.REBOOT_DEVICE_FLAG: {
@@ -338,7 +387,7 @@ public class MainMenuActivity extends AppCompatActivity {
                         MonitorDevice device = DeviceManager.getInstance().getDevice(name);
                         if (device != null) {
                             device.reboot();
-                            DeviceManager.getInstance().remove(name);
+                            //DeviceManager.getInstance().remove(name);
                             Toast.makeText(MainMenuActivity.this, "设备重启中!", Toast.LENGTH_SHORT).show();
                         }
                         break;
@@ -351,17 +400,23 @@ public class MainMenuActivity extends AppCompatActivity {
     }
 
     private void refreshDeviceStatusBar(){
-        int colorOne = Color.RED;
-        int colorTwo = Color.RED;
+        int colorOne = getResources().getColor(R.color.default_color);
+        int colorTwo = getResources().getColor(R.color.default_color);
+        int colorThree = getResources().getColor(R.color.default_color);
+        int colorFour = getResources().getColor(R.color.default_color);
         String statusText = "未就绪";
         int i = 0;
-        for(MonitorDevice device:devices) {
+        for(MonitorDevice device:DeviceManager.getInstance().getAllDevices()) {
             i++;
             if(device.isConnected()){
                 if(i == 1)
                     colorOne = Color.GREEN;
                 else if(i == 2)
                     colorTwo = Color.GREEN;
+                else if (i ==3 )
+                    colorThree = Color.GREEN;
+                else if(i == 4)
+                    colorFour = Color.GREEN;
                 statusText = "已连接";
 
             }
@@ -371,8 +426,21 @@ public class MainMenuActivity extends AppCompatActivity {
                         colorOne = Color.YELLOW;
                     else if (i == 2)
                         colorTwo = Color.YELLOW;
+                    else if (i ==3 )
+                        colorThree = Color.YELLOW;
+                    else if(i == 4)
+                        colorFour = Color.YELLOW;
                     if (statusText != "已连接")
                         statusText = "已就绪";
+                } else {
+                    if (i == 1)
+                        colorOne = Color.RED;
+                    else if (i == 2)
+                        colorTwo = Color.RED;
+                    else if (i ==3 )
+                        colorThree = Color.RED;
+                    else if(i == 4)
+                        colorFour = Color.RED;
                 }
                 try {
                     //device.connect();
@@ -382,13 +450,17 @@ public class MainMenuActivity extends AppCompatActivity {
             }
             //Log.d("changeDevice","devicename:"+device.getName()+" hashcode:"+device.hashCode());
         }
-        if(devices.size() == 0){
-            statusText = "尚未添加设备";
+        if(DeviceManager.getInstance().getAllDevices().size() == 0){
+            statusText = "无可用设备";
         }
         Intent intent = new Intent();
-        intent.putExtra("colorOne",colorOne);
-        intent.putExtra("colorTwo",colorTwo);
-        intent.putExtra("statusText",statusText);
+        Bundle bundle = new Bundle();
+        bundle.putInt("colorOne",colorOne);
+        bundle.putInt("colorTwo",colorTwo);
+        bundle.putInt("colorThree",colorThree);
+        bundle.putInt("colorFour",colorFour);
+        bundle.putString("statusText",statusText);
+        intent.putExtras(bundle);
         intent.setAction(MonitorApplication.BROAD_FROM_MAIN_MENU_DEVICE);
         sendBroadcast(intent);
     }
@@ -397,17 +469,20 @@ public class MainMenuActivity extends AppCompatActivity {
         Global.Configuration.type = (dao == null ? Status.TriggerType.SMS : dao.type);
         Global.Configuration.smsType = (dao == null ? Status.TriggerSMSType.INSIDE : dao.smsType);
         Global.Configuration.insideSMSType = (dao == null ? Status.InsideSMSType.NORMAL : dao.insideSMSType);
+        Global.Configuration.silentSMSType = (dao == null ? Status.SilentSMSType.TYPE_ONE : dao.silentSMSType);
         Global.Configuration.triggerInterval = (dao == null ? DEFAULT_TRIGGER_INTERVAL_SMS_MAX : dao.triggerInterval);
         Global.Configuration.filterInterval = (dao == null ? DEFAULT_SMS_FILTER_INTERVAL_MAX : dao.filterInterval);
-        Global.Configuration.silenceCheckTimer = DEFAULT_SILENCECHECKTIME;
+        Global.Configuration.silenceCheckTimer = (dao == null ?DEFAULT_SILENCECHECKTIME : dao.silenceCheckTimer);
         Global.Configuration.receivingAntennaNum = (dao == null ? DEFAULT_RECEIVINGANTENNANUM : dao.receivingAntennaNum);
         Global.Configuration.triggerTotalCount = (dao == null ? DEFAULT_TOTAL_TRIGGER_COUNT : dao.totalTriggerCount);
         Global.Configuration.targetPhoneNum = (dao == null ? "" : dao.targetPhoneNum);
         Global.Configuration.smsCenter = (dao == null ? "" : dao.smsCenter);
+
     }
 
     private void saveToDAO() {
-        ConfigurationDAO dao = new ConfigurationDAO(Global.Configuration.name, Global.Configuration.type,Global.Configuration.smsType ,Global.Configuration.insideSMSType,Global.Configuration.triggerInterval,
+        ConfigurationDAO dao = new ConfigurationDAO(Global.Configuration.name, Global.Configuration.type,Global.Configuration.smsType ,
+                Global.Configuration.insideSMSType, Global.Configuration.silentSMSType, Global.Configuration.triggerInterval,
                 Global.Configuration.filterInterval, Global.Configuration.silenceCheckTimer, Global.Configuration.receivingAntennaNum,
                 Global.Configuration.triggerTotalCount, Global.Configuration.targetPhoneNum,Global.Configuration.smsCenter);
         cmgr.insertOrUpdate(dao);

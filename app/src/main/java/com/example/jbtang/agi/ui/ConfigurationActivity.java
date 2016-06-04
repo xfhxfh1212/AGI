@@ -19,6 +19,7 @@ import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -52,6 +53,7 @@ public class ConfigurationActivity extends AppCompatActivity {
     private RadioButton SMSOutside;
     private RadioButton insideNormal;
     private RadioButton insideSilent;
+    private RadioGroup silentSMSType;
     private EditText triggerInterval;
     private EditText filterInterval;
     private EditText silenceTimer;
@@ -59,7 +61,7 @@ public class ConfigurationActivity extends AppCompatActivity {
     private EditText SMSCenter;
     private ConfigurationDBManager cmgr;
 
-    private static final int DEFAULT_TRIGGER_INTERVAL_SMS_MIN = 10;
+    private static final int DEFAULT_TRIGGER_INTERVAL_SMS_MIN = 5;
     private static final int DEFAULT_TRIGGER_INTERVAL_SMS_MAX = 30;
     private static final int DEFAULT_TRIGGER_INTERVAL_PHONE_MIN = 2;
     private static final int DEFAULT_TRIGGER_INTERVAL_PHONE_MAX = 10;
@@ -371,6 +373,7 @@ public class ConfigurationActivity extends AppCompatActivity {
         SMSOutside = (RadioButton) findViewById(R.id.system_configure_trigger_sms_outside);
         insideNormal = (RadioButton) findViewById(R.id.system_configure_trigger_sms_inside_normal);
         insideSilent = (RadioButton) findViewById(R.id.system_configure_trigger_sms_inside_silent);
+        silentSMSType = (RadioGroup) findViewById(R.id.system_configure_trigger_sms_silent_type);
         triggerInterval = (EditText) findViewById(R.id.system_configure_trigger_interval);
         filterInterval = (EditText) findViewById(R.id.system_configure_filter_threshold);
         silenceTimer = (EditText) findViewById(R.id.system_configure_silence_timer);
@@ -433,6 +436,13 @@ public class ConfigurationActivity extends AppCompatActivity {
                 case SILENT:
                     insideSilent.setChecked(true);
             }
+            switch (dao.silentSMSType) {
+                case TYPE_ONE: silentSMSType.check(R.id.system_configure_trigger_sms_silent_type_one);break;
+                case TYPE_TWO: silentSMSType.check(R.id.system_configure_trigger_sms_silent_type_two);break;
+                case TYPE_THREE: silentSMSType.check(R.id.system_configure_trigger_sms_silent_type_three);break;
+                case TYPE_FOUR: silentSMSType.check(R.id.system_configure_trigger_sms_silent_type_four);break;
+                case TYPE_FIVE: silentSMSType.check(R.id.system_configure_trigger_sms_silent_type_five);break;
+            }
         }
 
         String text = String.format("%d~%d", DEFAULT_SMS_FILTER_INTERVAL_MIN, DEFAULT_SMS_FILTER_INTERVAL_MAX);
@@ -479,7 +489,7 @@ public class ConfigurationActivity extends AppCompatActivity {
         if (triggerInterval.getText().toString().isEmpty()
                 || !(triggerSMS.isChecked() || triggerPhone.isChecked())
                 || !(SMSInside.isChecked() || SMSOutside.isChecked())
-                || !(insideSilent.isChecked() || insideNormal.isChecked())
+                || !((insideSilent.isChecked() && (silentSMSType.getCheckedRadioButtonId() != -1)) || insideNormal.isChecked())
                 || filterInterval.getText().toString().isEmpty()
                 || silenceTimer.getText().toString().isEmpty()
                 || totalTriggerCount.getText().toString().isEmpty()) {
@@ -508,6 +518,13 @@ public class ConfigurationActivity extends AppCompatActivity {
         Global.Configuration.type = triggerSMS.isChecked() ? Status.TriggerType.SMS : Status.TriggerType.PHONE;
         Global.Configuration.smsType = SMSInside.isChecked() ? Status.TriggerSMSType.INSIDE : Status.TriggerSMSType.OUTSIDE;
         Global.Configuration.insideSMSType = insideNormal.isChecked() ? Status.InsideSMSType.NORMAL : Status.InsideSMSType.SILENT;
+        switch (silentSMSType.getCheckedRadioButtonId()){
+            case R.id.system_configure_trigger_sms_silent_type_one : Global.Configuration.silentSMSType = Status.SilentSMSType.TYPE_ONE;break;
+            case R.id.system_configure_trigger_sms_silent_type_two : Global.Configuration.silentSMSType = Status.SilentSMSType.TYPE_TWO;break;
+            case R.id.system_configure_trigger_sms_silent_type_three : Global.Configuration.silentSMSType = Status.SilentSMSType.TYPE_THREE;break;
+            case R.id.system_configure_trigger_sms_silent_type_four : Global.Configuration.silentSMSType = Status.SilentSMSType.TYPE_FOUR;break;
+            case R.id.system_configure_trigger_sms_silent_type_five : Global.Configuration.silentSMSType = Status.SilentSMSType.TYPE_FIVE;break;
+        }
         Global.Configuration.triggerInterval = Integer.parseInt(triggerInterval.getText().toString());
         Global.Configuration.filterInterval = Integer.parseInt(filterInterval.getText().toString());
         Global.Configuration.silenceCheckTimer = Integer.parseInt(silenceTimer.getText().toString());
@@ -517,7 +534,8 @@ public class ConfigurationActivity extends AppCompatActivity {
     }
 
     private void saveToDAO() {
-        ConfigurationDAO dao = new ConfigurationDAO(Global.Configuration.name, Global.Configuration.type,Global.Configuration.smsType ,Global.Configuration.insideSMSType,Global.Configuration.triggerInterval,
+        ConfigurationDAO dao = new ConfigurationDAO(Global.Configuration.name, Global.Configuration.type,Global.Configuration.smsType ,
+                Global.Configuration.insideSMSType, Global.Configuration.silentSMSType, Global.Configuration.triggerInterval,
                 Global.Configuration.filterInterval, Global.Configuration.silenceCheckTimer, Global.Configuration.receivingAntennaNum,
                 Global.Configuration.triggerTotalCount, Global.Configuration.targetPhoneNum,Global.Configuration.smsCenter);
         cmgr.insertOrUpdate(dao);

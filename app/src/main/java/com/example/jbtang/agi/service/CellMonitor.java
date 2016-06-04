@@ -28,7 +28,6 @@ public class CellMonitor {
 
     public void prepareMonitor(MonitorDevice device, CellInfo cellInfo) {
         device.setCellInfo(cellInfo);
-        device.setIsReadyToMonitor(true);
     }
 
 

@@ -20,6 +20,7 @@ import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -28,6 +29,7 @@ import com.example.jbtang.agi.R;
 import com.example.jbtang.agi.core.Global;
 import com.example.jbtang.agi.core.Status;
 import com.example.jbtang.agi.device.DeviceManager;
+import com.example.jbtang.agi.device.MonitorDevice;
 import com.example.jbtang.agi.external.MonitorApplication;
 import com.example.jbtang.agi.external.MonitorHelper;
 import com.example.jbtang.agi.service.FindSTMSI;
@@ -36,6 +38,8 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 
 import io.fmaster.LTEServCellMessage;
@@ -56,10 +60,18 @@ public class FindSTMSIActivity extends AppCompatActivity {
     private TextView currentPCi;
     private EditText targetSTMSI;
     private myHandler handler;
-    private TextView deviceStatusColor;
-    private TextView cellConfirmColor;
-    private TextView cellRsrp;
-    private TextView pciNum;
+    private TextView cellConfirmColorOne;
+    private TextView cellConfirmColorTwo;
+    private TextView cellConfirmColorThree;
+    private TextView cellConfirmColorFour;
+    private TextView cellRsrpOne;
+    private TextView cellRsrpTwo;
+    private TextView cellRsrpThree;
+    private TextView cellRsrpFour;
+    private TextView pciNumOne;
+    private TextView pciNumTwo;
+    private TextView pciNumThree;
+    private TextView pciNumFour;
     private MonitorHelper monitorHelper;
 
     private TextView sumCountText;
@@ -76,13 +88,19 @@ public class FindSTMSIActivity extends AppCompatActivity {
     }
     @Override
     protected void onDestroy() {
+
+        super.onDestroy();
+    }
+
+    @Override
+    protected void onStop() {
         if(startToFind) {
             FindSTMSI.getInstance().stop();
             startToFind = false;
         }
         unregisterReceiver(receiver);
         monitorHelper.unbindservice(FindSTMSIActivity.this);
-        super.onDestroy();
+        super.onStop();
     }
 
     @Override
@@ -109,6 +127,11 @@ public class FindSTMSIActivity extends AppCompatActivity {
 
 
     private void init() {
+        LayoutInflater inflater = getLayoutInflater();
+        LinearLayout linearLayout = (LinearLayout) findViewById(R.id.find_stmsi_cell_status_bar);
+        LinearLayout cellStatusBar = (LinearLayout) inflater.inflate(R.layout.cell_status_bar,null).findViewById(R.id.cell_status_bar_linearlayout);
+        linearLayout.addView(cellStatusBar);
+
         countSortedInfoList = new ArrayList<>();
         startToFind = false;
 
@@ -117,12 +140,22 @@ public class FindSTMSIActivity extends AppCompatActivity {
         targetPhone = (TextView) findViewById(R.id.find_stmsi_target_phone_num);
         currentPCi = (TextView) findViewById(R.id.find_stmsi_current_pci);
         targetSTMSI = (EditText) findViewById(R.id.find_stmsi_target_stmsi);
-        deviceStatusColor = (TextView) findViewById(R.id.find_stmsi_device_background);
-        cellConfirmColor = (TextView)findViewById(R.id.find_stmsi_confirm_background);
-        cellRsrp = (TextView)findViewById(R.id.find_stmsi_rsrp);
-        pciNum = (TextView)findViewById(R.id.find_stmsi_pci_num);
+        //deviceStatusColor = (TextView) findViewById(R.id.find_stmsi_device_background_one);
+        cellConfirmColorOne = (TextView)findViewById(R.id.cell_status_bar_confirm_background_one);
+        cellConfirmColorTwo = (TextView)findViewById(R.id.cell_status_bar_confirm_background_two);
+        cellConfirmColorThree = (TextView)findViewById(R.id.cell_status_bar_confirm_background_three);
+        cellConfirmColorFour = (TextView)findViewById(R.id.cell_status_bar_confirm_background_four);
+        cellRsrpOne = (TextView)findViewById(R.id.cell_status_bar_rsrp_one);
+        cellRsrpTwo = (TextView)findViewById(R.id.cell_status_bar_rsrp_two);
+        cellRsrpThree = (TextView)findViewById(R.id.cell_status_bar_rsrp_three);
+        cellRsrpFour = (TextView)findViewById(R.id.cell_status_bar_rsrp_four);
+        pciNumOne = (TextView)findViewById(R.id.cell_status_bar_pci_num_one);
+        pciNumTwo = (TextView)findViewById(R.id.cell_status_bar_pci_num_two);
+        pciNumThree = (TextView)findViewById(R.id.cell_status_bar_pci_num_three);
+        pciNumFour = (TextView)findViewById(R.id.cell_status_bar_pci_num_four);
 
         targetPhone.setText(Global.Configuration.targetPhoneNum);
+        targetSTMSI.setText(Global.TARGET_STMSI);
 
         sumCountText = (TextView) findViewById(R.id.find_stmsi_sum_count_text);
         nullCountText = (TextView) findViewById(R.id.find_stmsi_null_count_text);
@@ -162,6 +195,9 @@ public class FindSTMSIActivity extends AppCompatActivity {
             public void onClick(View v) {
                 FindSTMSI.getInstance().stop();
                 startToFind = false;
+                try {
+                    Thread.sleep(1000);
+                } catch(Exception e){}
                 startButton.setEnabled(true);
             }
         });
@@ -194,20 +230,55 @@ public class FindSTMSIActivity extends AppCompatActivity {
                 ((CountAdapter) count.getAdapter()).notifyDataSetChanged();
                 sumCountText.setText(String.valueOf(FindSTMSI.getInstance().sumCount));
                 nullCountText.setText(String.valueOf(FindSTMSI.getInstance().nullCount));
-                if(DeviceManager.getInstance().getDevices().size() == 0) {
-                    return;
+                int position = 0;
+                for (MonitorDevice device : DeviceManager.getInstance().getAllDevices()) {
+                    if(device.getStatus() != Status.DeviceStatus.DISCONNECTED ) {
+                        if(device.getIsReadyToMonitor()) {
+                            if (device.getWorkingStatus() == Status.DeviceWorkingStatus.NORMAL) {
+                                String rsrp = String.format("%.2f", device.getCellInfo().rsrp);
+                                setCellStatusBar(position, Color.GREEN, rsrp, device.getCellInfo().pci + "");
+                            } else if(device.getWorkingStatus() != Status.DeviceWorkingStatus.NORMAL){
+                                setCellStatusBar(position, Color.RED, "N/A", device.getCellInfo().pci + "");
+                            }
+                        } else {
+                            setCellStatusBar(position, Color.YELLOW, "", "");
+                        }
+                    } else {
+                        setCellStatusBar(position, getResources().getColor(R.color.default_color), "", "");
+                    }
+                    position++;
                 }
-                if (DeviceManager.getInstance().getDevices().get(0).getWorkingStatus() == Status.DeviceWorkingStatus.NORMAL) {
-                    String rsrp = String.format("%.2f",DeviceManager.getInstance().getDevices().get(0).getCellInfo().rsrp);
-                    cellConfirmColor.setBackgroundColor(Color.GREEN);
-                    cellRsrp.setText(rsrp);
-                } else {
-                    cellConfirmColor.setBackgroundColor(Color.RED);
-                    cellRsrp.setText("N/A");
-                }
-                pciNum.setText(String.valueOf(DeviceManager.getInstance().getDevices().get(0).getCellInfo().pci));
             }
         });
+    }
+    private void setCellStatusBar(int position,int color,String text,String pci){
+        switch (position){
+            case 0:{
+                cellConfirmColorOne.setBackgroundColor(color);
+                cellRsrpOne.setText(text);
+                pciNumOne.setText(pci);
+                break;
+            }
+            case 1:{
+                cellConfirmColorTwo.setBackgroundColor(color);
+                cellRsrpTwo.setText(text);
+                pciNumTwo.setText(pci);
+                break;
+            }
+            case 2:{
+                cellConfirmColorThree.setBackgroundColor(color);
+                cellRsrpThree.setText(text);
+                pciNumThree.setText(pci);
+                break;
+            }
+            case 3:{
+                cellConfirmColorFour.setBackgroundColor(color);
+                cellRsrpFour.setText(text);
+                pciNumFour.setText(pci);
+                break;
+            }
+            default:break;
+        }
     }
     static class myHandler extends Handler {
         private final WeakReference<FindSTMSIActivity> mOuter;
@@ -296,7 +367,7 @@ public class FindSTMSIActivity extends AppCompatActivity {
                 refreshServerCell(intent);
             }
             else if(intent.getAction().equals(MonitorApplication.BROAD_FROM_MAIN_MENU_DEVICE)){
-                refreshDeviceStatus(intent);
+                //refreshDeviceStatus(intent);
             }
         }
     }
@@ -315,15 +386,15 @@ public class FindSTMSIActivity extends AppCompatActivity {
         }
     }
     private void refreshDeviceStatus(Intent intent){
-        int colorOne = intent.getIntExtra("colorOne", Color.RED);
-        int colorTwo = intent.getIntExtra("colorTwo", Color.RED);
-        if (colorOne == Color.GREEN || colorTwo == Color.GREEN) {
-            deviceStatusColor.setBackgroundColor(Color.GREEN);
-        } else if (colorOne == Color.YELLOW || colorTwo == Color.YELLOW) {
-            deviceStatusColor.setBackgroundColor(Color.YELLOW);
-        } else {
-            deviceStatusColor.setBackgroundColor(Color.RED);
-        }
+        Bundle bundle = intent.getExtras();
+        int colorOne = bundle.getInt("colorOne");
+        int colorTwo = bundle.getInt("colorTwo");
+        int colorThree = bundle.getInt("colorThree");
+        int colorFour = bundle.getInt("colorFour");
+        cellConfirmColorOne.setBackgroundColor(Color.RED);
+        cellConfirmColorTwo.setBackgroundColor(Color.RED);
+        cellConfirmColorThree.setBackgroundColor(Color.RED);
+        cellConfirmColorFour.setBackgroundColor(Color.RED);
     }
     /**
      * for count ListView

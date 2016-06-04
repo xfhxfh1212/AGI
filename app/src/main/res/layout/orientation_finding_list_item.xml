@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="fill_parent"
     android:layout_height="wrap_content"
     android:drawingCacheQuality="high"
@@ -7,26 +7,35 @@
 
     <TextView
         android:id="@+id/orientation_find_list_item_num"
-        android:layout_width="110dp"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_centerVertical="true"
+        android:layout_weight="1"
         android:gravity="center" />
 
     <TextView
         android:id="@+id/orientation_find_list_item_pusch"
-        android:layout_width="110dp"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_centerVertical="true"
-        android:layout_toRightOf="@+id/orientation_find_list_item_num"
+        android:layout_weight="1"
         android:gravity="center" />
-
+    <TextView
+        android:id="@+id/orientation_find_list_item_pci"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:gravity="center" />
+    <TextView
+        android:id="@+id/orientation_find_list_item_earfcn"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:gravity="center" />
     <TextView
         android:id="@+id/orientation_find_list_item_time"
-        android:layout_width="fill_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_centerVertical="true"
-        android:layout_toRightOf="@+id/orientation_find_list_item_pusch"
+        android:layout_weight="1"
         android:gravity="center" />
 
-</RelativeLayout>
+</LinearLayout>
 

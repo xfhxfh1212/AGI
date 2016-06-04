@@ -22,8 +22,12 @@
     <string name="title_main_menu_cellPhone_info">本机信息</string>
     <string name="page_main_menu_target_phone_num">目标号码</string>
     <string name="page_main_menu_save">保存</string>
+    <string name="page_main_menu_device_reboot">复位</string>
     <string name="page_main_menu_device_connect">连接</string>
     <string name="page_main_menu_device_disconnect">断开</string>
+    <string name="title_main_menu_device_reboot_confirm">确认复位?</string>
+    <string name="page_main_menu_device_reboot_confrim_ok">确定</string>
+    <string name="page_main_menu_device_reboot_confirm_cancel">取消</string>
     <!-- device configure page -->
     <string name="title_activity_device_configuration">设备管理</string>
     <string name="title_device_configuration_show_detail">详细信息</string>
@@ -66,6 +70,12 @@
     <string name="page_system_configure_trigger_SMS_inside_type">内部短信类型</string>
     <string name="page_system_configure_trigger_SMS_inside_normal">普通短信</string>
     <string name="page_system_configure_trigger_SMS_inside_silent">静默短信</string>
+    <string name="page_system_configure_trigger_SMS_silent_type">静默短信类型</string>
+    <string name="page_system_configure_trigger_SMS_silent_type_one">一</string>
+    <string name="page_system_configure_trigger_SMS_silent_type_two">二</string>
+    <string name="page_system_configure_trigger_SMS_silent_type_three">三</string>
+    <string name="page_system_configure_trigger_SMS_silent_type_four">四</string>
+    <string name="page_system_configure_trigger_SMS_silent_type_five">五</string>
     <string name="page_system_configure_trigger_max">触发总次数（次）</string>
     <string name="page_system_configure_SMS_interval">触发间隔（秒）</string>
     <string name="page_system_configure_filter_seconds">过滤门限（秒）</string>
@@ -122,12 +132,15 @@
     <!-- Orientation -->
     <string name="page_orientation_find_device_name">"设备名称"</string>
     <string name="page_orientation_find_stmsi">"STMSI"</string>
+    <string name="page_orientation_find_single">单次</string>
+    <string name="page_orientation_find_continue">连续</string>
     <string name="page_orientation_find_start">"开始"</string>
     <string name="page_orientation_find_stop">"停止"</string>
     <string name="page_orientation_find_result_list_title_num">序号</string>
     <string name="page_orientation_find_result_list_title_pusch">PUSCH</string>
     <string name="page_orientation_find_result_list_title_time">Time</string>
     <string name="page_orientation_find_result_list_title_pci">PCI</string>
+    <string name="page_orientation_find_result_list_title_earfcn">EARFCN</string>
     <string name="page_orientation_find_result_graph_pucch">PUCCH</string>
     <string name="page_orientation_find_result_graph_pusch">PUSCH</string>
     <string name="page_orientation_find_target_stmsi">目标STMSI :</string>
@@ -155,9 +168,11 @@
     <string name="page_local_info_my_stmsi">本机STMSI :</string>
 
     <!-- status bar -->
-    <string name="page_status_bar_device_status">设备状态</string>
+    <string name="page_status_bar_device_status">设备状态 </string>
     <string name="page_status_bar_agi_one">M1</string>
     <string name="page_status_bar_agi_two">M2</string>
+    <string name="page_status_bar_agi_three">M3</string>
+    <string name="page_status_bar_agi_four">M4</string>
     <string name="page_status_bar_device_confirm">驻留状态</string>
     <string name="page_status_bar_rsrp">信号强度</string>
     <string name="page_status_bar_pci">PCI</string>

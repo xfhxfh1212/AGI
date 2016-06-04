@@ -2,9 +2,11 @@ package com.example.jbtang.agi.core;
 
 import com.example.jbtang.agi.dao.configuration.ConfigurationDBManager;
 import com.example.jbtang.agi.device.Device;
+import com.example.jbtang.agi.device.MonitorDevice;
 
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -23,7 +25,7 @@ public class Global {
 
     public static class ThreadPool {
         public static final ExecutorService cachedThreadPool = Executors.newCachedThreadPool();
-        public static final ScheduledExecutorService scheduledThreadPool = Executors.newScheduledThreadPool(15);
+        public static final ScheduledExecutorService scheduledThreadPool = Executors.newScheduledThreadPool(20);
 
         private ThreadPool() {
 
@@ -59,6 +61,7 @@ public class Global {
         public static Status.TriggerType type;
         public static Status.TriggerSMSType smsType;
         public static Status.InsideSMSType insideSMSType;
+        public static Status.SilentSMSType silentSMSType;
         public static int triggerInterval;
         public static int filterInterval;
         public static int silenceCheckTimer;
@@ -73,4 +76,5 @@ public class Global {
     public static String TARGET_STMSI;
     public static Map<String,String> filterStmsiMap = new HashMap<>();
     public static Date sendTime;
+
 }

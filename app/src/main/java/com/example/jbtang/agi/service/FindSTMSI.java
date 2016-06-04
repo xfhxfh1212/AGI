@@ -13,6 +13,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.jbtang.agi.R;
+import com.example.jbtang.agi.core.CellInfo;
 import com.example.jbtang.agi.core.Global;
 import com.example.jbtang.agi.core.Status;
 import com.example.jbtang.agi.core.type.U32;
@@ -42,6 +43,7 @@ import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -134,11 +136,24 @@ public class FindSTMSI {
             trigger.start(activity, service);
         }
         for (MonitorDevice device : DeviceManager.getInstance().getDevices()) {
-            timerMap.put(device.getName(), new Timer());
+            if(device.getCellInfo() != null) {
+                timerMap.put(device.getName(), new Timer());
+            }
         }
         for(Map.Entry<String, Timer> entry : timerMap.entrySet()) {
-            entry.getValue().schedule(new MyTimerTask(entry.getKey()), 10000);
+            entry.getValue().schedule(new MyTimerTask(entry.getKey()), 15000);
         }
+        Global.ThreadPool.scheduledThreadPool.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                for(MonitorDevice device : DeviceManager.getInstance().getDevices()) {
+                    if(device.getCellInfo() != null && device.getStatus() == Status.DeviceStatus.DISCONNECTED) {
+                        device.setWorkingStatus(Status.DeviceWorkingStatus.ABNORMAL);
+                        changeDevice(device.getName());
+                    }
+                }
+            }
+        },3,3, TimeUnit.SECONDS);
     }
     private class MyTimerTask extends TimerTask {
         private String mName;
@@ -147,23 +162,53 @@ public class FindSTMSI {
         }
         @Override
         public void run() {
-            MonitorDevice device = DeviceManager.getInstance().getDevice(mName);
-            if(device.isWorking()) {
-                device.reboot();
-                timerMap.get(mName).cancel();
-                timerMap.remove(mName);
-                Toast.makeText(currentActivity, String.format("%d小区驻留失败，%s正在恢复初始状态！", device.getCellInfo().pci, mName), Toast.LENGTH_SHORT).show();
-                if(timerMap.isEmpty()) {
-                    trigger.stop();
-                    startBtn.setEnabled(true);
-                    Toast.makeText(currentActivity, "搜索已停止！", Toast.LENGTH_SHORT).show();
-                }
-
+            changeDevice(mName);
+        }
+    }
+    private void changeDevice(final String deviceName) {
+        MonitorDevice temDevice = DeviceManager.getInstance().getDevice(deviceName);
+        if(temDevice == null)
+            return;
+        temDevice.reboot();
+        Log.e(TAG,"Device Status After Reboot"+temDevice.getStatus());
+        timerMap.get(deviceName).cancel();
+        timerMap.remove(deviceName);
+        CellInfo cellInfo = temDevice.getCellInfo();
+        String nextDeviceName = "";
+        for (MonitorDevice device : DeviceManager.getInstance().getDevices()) {
+            if(!device.getIsReadyToMonitor() && device.getType() == temDevice.getType() && device.isReady()) {
+                device.setCellInfo(cellInfo);
+                timerMap.put(device.getName(), new Timer());
+                timerMap.get(device.getName()).schedule(new MyTimerTask(device.getName()), 15000);
+                device.startMonitor(Status.Service.FINDSTMIS);
+                nextDeviceName = device.getName();
+                break;
             }
         }
+        temDevice.setCellInfo(null);
+        final Short pci = cellInfo.pci;
+        final String nextName = nextDeviceName;
+        currentActivity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if(nextName != "")
+                    Toast.makeText(currentActivity, String.format("%s出现异常，切换至设备%s！", deviceName, nextName), Toast.LENGTH_LONG).show();
+                else
+                    Toast.makeText(currentActivity, String.format("%s出现异常，正在恢复初始状态！", deviceName), Toast.LENGTH_LONG).show();
+                if(timerMap.isEmpty()) {
+                    trigger.stop();
+                    Toast.makeText(currentActivity, "搜索已停止！", Toast.LENGTH_LONG).show();
+                }
+            }
+        });
     }
     public void stop() {
         trigger.stop();
+        for(Map.Entry<String, Timer> entry : timerMap.entrySet()) {
+            entry.getValue().cancel();
+            entry.setValue(null);
+        }
+        timerMap.clear();
     }
 
     private void resolveCellCaptureMsg(Global.GlobalMsg globalMsg) {
@@ -172,78 +217,86 @@ public class FindSTMSI {
         Status.DeviceWorkingStatus status = msg.getMu16Rsrp() == 0 ? Status.DeviceWorkingStatus.ABNORMAL : Status.DeviceWorkingStatus.NORMAL;
         Float rsrp = msg.getMu16Rsrp()*1.0F;
         MonitorDevice monitorDevice = DeviceManager.getInstance().getDevice(globalMsg.getDeviceName());
+        if(monitorDevice == null)
+            return;
         monitorDevice.setWorkingStatus(status);
         monitorDevice.getCellInfo().rsrp = rsrp;
         Log.e(TAG, String.format("==========status : %s, rsrp : %f ============", status.name(), rsrp));
         Log.e("cell_capture", "mu16PCI:" + msg.getMu16PCI() + " mu16EARFCN:" + msg.getMu16EARFCN() + " mu16TAC:" + msg.getMu16TAC() + " mu16Rsrp:" + msg.getMu16Rsrp() + " mu16Rsrq:" + msg.getMu16Rsrq());
-        timerMap.get(monitorDevice.getName()).cancel();
+        if(timerMap.get(monitorDevice.getName())!=null)
+            timerMap.get(monitorDevice.getName()).cancel();
         if(status == Status.DeviceWorkingStatus.ABNORMAL) {
             timerMap.remove(monitorDevice.getName());
             if (timerMap.isEmpty()) {
                 trigger.stop();
-                startBtn.setEnabled(true);
-                Toast.makeText(currentActivity, "搜索已停止！", Toast.LENGTH_SHORT).show();
+                Toast.makeText(currentActivity, "搜索已停止！", Toast.LENGTH_LONG).show();
             } else {
-                Toast.makeText(currentActivity, String.format("%d小区驻留失败！",msg.getMu16PCI()), Toast.LENGTH_SHORT).show();
+                Toast.makeText(currentActivity, String.format("%d小区驻留失败！",msg.getMu16PCI()), Toast.LENGTH_LONG).show();
             }
         }
     }
 
     private void resolveUECaptureMsg(Global.GlobalMsg globalMsg) {
-        stmsiCount++;
-        sumCount++;
-        long difTime;
-        Date currentTime = new Date();
+        try {
+            stmsiCount++;
+            sumCount++;
+            long difTime;
+            Date currentTime = new Date();
 
-        MsgL2P_AG_UE_CAPTURE_IND msg = new MsgL2P_AG_UE_CAPTURE_IND(globalMsg.getBytes());
-        String stmsi = "";
-        byte mec = 0;
-        int mu8EstCause = 0;
-        if ((msg.getMstUECaptureInfo().getMu8UEIDTypeFlg() & 0x20) == 0x20) {
-            mec = msg.getMstUECaptureInfo().getMau8GUTIDATA()[5].getBytes()[0];
-            byte[] stmsiBytes = new byte[4];
-            stmsiBytes[3] = msg.getMstUECaptureInfo().getMau8GUTIDATA()[6].getBytes()[0];
-            stmsiBytes[2] = msg.getMstUECaptureInfo().getMau8GUTIDATA()[7].getBytes()[0];
-            stmsiBytes[1] = msg.getMstUECaptureInfo().getMau8GUTIDATA()[8].getBytes()[0];
-            stmsiBytes[0] = msg.getMstUECaptureInfo().getMau8GUTIDATA()[9].getBytes()[0];
-            mu8EstCause = msg.getMstUECaptureInfo().getMu8Pading1();
-            stmsi = new StringBuilder().append(padLeft(String.format("%X", mec), "0", 2))
-                    .append(padLeft(String.format("%X", stmsiBytes[0]), "0", 2))
-                    .append(padLeft(String.format("%X", stmsiBytes[1]), "0", 2))
-                    .append(padLeft(String.format("%X", stmsiBytes[2]), "0", 2))
-                    .append(padLeft(String.format("%X", stmsiBytes[3]), "0", 2))
-                    .toString();
-        }
-        if(stmsi.equals("")) {
-            nullCount++;
-            return;
-        }
-        if(service == Status.Service.FINDSTMIS) {
-            difTime = (currentTime.getTime() - Global.sendTime.getTime()) / 1000;
-            if (difTime > Global.Configuration.filterInterval) {
+            MsgL2P_AG_UE_CAPTURE_IND msg = new MsgL2P_AG_UE_CAPTURE_IND(globalMsg.getBytes());
+            String stmsi = "";
+            byte mec = 0;
+            int mu8EstCause = 0;
+            if ((msg.getMstUECaptureInfo().getMu8UEIDTypeFlg() & 0x20) == 0x20) {
+                mec = msg.getMstUECaptureInfo().getMau8GUTIDATA()[5].getBytes()[0];
+                byte[] stmsiBytes = new byte[4];
+                stmsiBytes[3] = msg.getMstUECaptureInfo().getMau8GUTIDATA()[6].getBytes()[0];
+                stmsiBytes[2] = msg.getMstUECaptureInfo().getMau8GUTIDATA()[7].getBytes()[0];
+                stmsiBytes[1] = msg.getMstUECaptureInfo().getMau8GUTIDATA()[8].getBytes()[0];
+                stmsiBytes[0] = msg.getMstUECaptureInfo().getMau8GUTIDATA()[9].getBytes()[0];
+                mu8EstCause = msg.getMstUECaptureInfo().getMu8Pading1();
+                stmsi = new StringBuilder().append(padLeft(String.format("%X", mec), "0", 2))
+                        .append(padLeft(String.format("%X", stmsiBytes[0]), "0", 2))
+                        .append(padLeft(String.format("%X", stmsiBytes[1]), "0", 2))
+                        .append(padLeft(String.format("%X", stmsiBytes[2]), "0", 2))
+                        .append(padLeft(String.format("%X", stmsiBytes[3]), "0", 2))
+                        .toString();
+            }
+            if (stmsi.equals("")) {
+                nullCount++;
                 return;
             }
-        }else {
-            difTime = (currentTime.getTime() - interferenceTime.getTime()) / 1000;
-            if(difTime < 8) {
+            if (service == Status.Service.FINDSTMIS) {
+                difTime = (currentTime.getTime() - Global.sendTime.getTime()) / 1000;
+                if (difTime > Global.Configuration.filterInterval) {
+                    return;
+                }
+            } else {
+                difTime = (currentTime.getTime() - interferenceTime.getTime()) / 1000;
+                if (difTime < 10) {
+                    return;
+                }
+            }
+            Log.e(TAG, String.format("---------Find STMSI :%s Time :%d Type :%d-----------", stmsi, difTime, mu8EstCause));
+            if (!(mu8EstCause == 0x02)) {
                 return;
             }
-        }
-        Log.e(TAG, String.format("---------Find STMSI :%s Time :%d Type :%d-----------", stmsi,difTime ,mu8EstCause));
-        if (!(mu8EstCause == 0x02)) {
-            return;
-        }
-        if(service == Status.Service.FINDSTMIS && filterCheckBox.isChecked() && Global.filterStmsiMap.containsKey(stmsi))
-            return;
-        int count = sTMSI2Count.containsKey(stmsi) ? Integer.valueOf(sTMSI2Count.get(stmsi).count) : 0;
-        CountSortedInfo info = new CountSortedInfo();
+            if (service == Status.Service.FINDSTMIS && filterCheckBox.isChecked() && Global.filterStmsiMap.containsKey(stmsi))
+                return;
+            int count = sTMSI2Count.containsKey(stmsi) ? Integer.valueOf(sTMSI2Count.get(stmsi).count) : 0;
+            CountSortedInfo info = new CountSortedInfo();
 
-        info.stmsi = stmsi;
-        info.count = String.valueOf(count + 1);
-        info.time = DATE_FORMAT.format(new Date());
-        info.pci = String.valueOf(DeviceManager.getInstance().getDevice(globalMsg.getDeviceName()).getCellInfo().pci);
-        info.earfcn =String.valueOf(DeviceManager.getInstance().getDevice(globalMsg.getDeviceName()).getCellInfo().earfcn);
-        sTMSI2Count.put(stmsi, info);
+            info.stmsi = stmsi;
+            info.count = String.valueOf(count + 1);
+            info.time = DATE_FORMAT.format(new Date());
+            if (DeviceManager.getInstance().getDevice(globalMsg.getDeviceName()) == null)
+                return;
+            info.pci = String.valueOf(DeviceManager.getInstance().getDevice(globalMsg.getDeviceName()).getCellInfo().pci);
+            info.earfcn = String.valueOf(DeviceManager.getInstance().getDevice(globalMsg.getDeviceName()).getCellInfo().earfcn);
+            sTMSI2Count.put(stmsi, info);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private Set<Map.Entry<String, CountSortedInfo>> getSortedSTMSI() {

@@ -6,11 +6,15 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.net.Uri;
 import android.telephony.SmsManager;
+import android.telephony.TelephonyManager;
 import android.util.Log;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.android.internal.telephony.ITelephony;
 import com.example.jbtang.agi.R;
 import com.example.jbtang.agi.core.Global;
 import com.example.jbtang.agi.core.Status;
@@ -18,7 +22,10 @@ import com.example.jbtang.agi.device.DeviceManager;
 import com.example.jbtang.agi.device.MonitorDevice;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.Date;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -49,6 +56,9 @@ public class SMSTrigger implements Trigger {
     private Runnable task;
     private Future future;
     String finalText = "";
+    private Timer timer;
+    private boolean send;
+    private boolean deliver;
     @Override
     public void start(Activity activity, Status.Service service) {
         if (!start) {
@@ -56,11 +66,11 @@ public class SMSTrigger implements Trigger {
             switch (service) {
                 case FINDSTMIS:
                     task = new FindSTMSITask();
-                    future = Global.ThreadPool.scheduledThreadPool.scheduleAtFixedRate(task, 3, Global.Configuration.triggerInterval, TimeUnit.SECONDS);
+                    future = Global.ThreadPool.scheduledThreadPool.scheduleAtFixedRate(task, 1, Global.Configuration.triggerInterval, TimeUnit.SECONDS);
                     break;
                 case ORIENTATION:
                     task = new OrientationFindingTask();
-                    future = Global.ThreadPool.scheduledThreadPool.scheduleAtFixedRate(task, 3, Global.Configuration.triggerInterval, TimeUnit.SECONDS);
+                    future = Global.ThreadPool.scheduledThreadPool.scheduleAtFixedRate(task, 1, Global.Configuration.triggerInterval, TimeUnit.SECONDS);
                     break;
                 case INTERFERENCE:
                     task = new InterferenceTask();
@@ -83,8 +93,15 @@ public class SMSTrigger implements Trigger {
             if (task != null && future != null) {
                 future.cancel(true);
             }
+            if(timer != null)
+                timer.cancel();
+            if(Global.Configuration.type == Status.TriggerType.SMS && Global.Configuration.smsType == Status.TriggerSMSType.INSIDE) {
+                currentActivity.unregisterReceiver(sendReceive);
+                currentActivity.unregisterReceiver(deliverReceive);
+            }
             task = null;
             future = null;
+            timer = null;
             start = false;
         }
     }
@@ -109,10 +126,24 @@ public class SMSTrigger implements Trigger {
                     device.startMonitor(Status.Service.FINDSTMIS);
                     device.setWorkingStatus(Status.DeviceWorkingStatus.ABNORMAL);
                 }
+                if(Global.Configuration.type == Status.TriggerType.SMS && Global.Configuration.smsType == Status.TriggerSMSType.INSIDE) {
+                    String SENT = "sms_sent";
+                    String DELIVERED = "sms_delivered";
+                    currentActivity.registerReceiver(sendReceive, new IntentFilter(SENT));
+                    currentActivity.registerReceiver(deliverReceive, new IntentFilter(DELIVERED));
+                }
                 startMonitor = true;
             }
-            if(Global.Configuration.smsType == Status.TriggerSMSType.INSIDE)
+            for(MonitorDevice device : DeviceManager.getInstance().getDevices()) {
+                if(device.isConnected()) {
+
+                }
+            }
+            if(Global.Configuration.type == Status.TriggerType.SMS && Global.Configuration.smsType == Status.TriggerSMSType.INSIDE) {
                 send();
+            } else if (Global.Configuration.type == Status.TriggerType.PHONE) {
+                call();
+            }
             smsCount++;
             freshSmsCount();
             Global.sendTime = new Date();
@@ -135,13 +166,21 @@ public class SMSTrigger implements Trigger {
 //                future.cancel(true);
 //            }
             if(!startMonitor) {
+                Log.e(TAG,DeviceManager.getInstance().getDevices().size()+"");
                 for (MonitorDevice device : DeviceManager.getInstance().getDevices()) {
+                    Log.e(TAG,device.getName());
                     device.startMonitor(Status.Service.FINDSTMIS);
                     device.setWorkingStatus(Status.DeviceWorkingStatus.ABNORMAL);
                 }
+                if(Global.Configuration.type == Status.TriggerType.SMS && Global.Configuration.smsType == Status.TriggerSMSType.INSIDE) {
+                    String SENT = "sms_sent";
+                    String DELIVERED = "sms_delivered";
+                    currentActivity.registerReceiver(sendReceive, new IntentFilter(SENT));
+                    currentActivity.registerReceiver(deliverReceive, new IntentFilter(DELIVERED));
+                }
                 startMonitor = true;
             }
-            if(Global.Configuration.smsType == Status.TriggerSMSType.INSIDE)
+            if(Global.Configuration.type == Status.TriggerType.SMS && Global.Configuration.smsType == Status.TriggerSMSType.INSIDE)
                 send();
             smsCount++;
             freshSmsCount();
@@ -166,9 +205,15 @@ public class SMSTrigger implements Trigger {
                     device.startMonitor(Status.Service.ORIENTATION);
                     device.setWorkingStatus(Status.DeviceWorkingStatus.ABNORMAL);
                 }
+                if(Global.Configuration.type == Status.TriggerType.SMS && Global.Configuration.smsType == Status.TriggerSMSType.INSIDE) {
+                    String SENT = "sms_sent";
+                    String DELIVERED = "sms_delivered";
+                    currentActivity.registerReceiver(sendReceive, new IntentFilter(SENT));
+                    currentActivity.registerReceiver(deliverReceive, new IntentFilter(DELIVERED));
+                }
                 startMonitor = true;
             }
-            if(Global.Configuration.smsType == Status.TriggerSMSType.INSIDE)
+            if(Global.Configuration.type == Status.TriggerType.SMS && Global.Configuration.smsType == Status.TriggerSMSType.INSIDE)
                 send();
 
             smsCount++;
@@ -181,60 +226,49 @@ public class SMSTrigger implements Trigger {
         String DELIVERED = "sms_delivered";
         PendingIntent sentPI = PendingIntent.getBroadcast(currentActivity, 0, new Intent(SENT), 0);
         PendingIntent deliveredPI = PendingIntent.getBroadcast(currentActivity, 0, new Intent(DELIVERED), 0);
-
         if(smsCount == 0) {
-            currentActivity.registerReceiver(new BroadcastReceiver() {
+            try{
+                Thread.sleep(3000);
+            }catch (Exception e){
 
-                @Override
-                public void onReceive(Context context, Intent intent) {
-                    switch (getResultCode()) {
-                        case Activity.RESULT_OK:
-                            Log.i("====>", "Activity.RESULT_OK");
-                            //Toast.makeText(context,"发送成功",Toast.LENGTH_SHORT).show();
-                            break;
-                        case SmsManager.RESULT_ERROR_GENERIC_FAILURE:
-                            Log.i("====>", "RESULT_ERROR_GENERIC_FAILURE");
-                            break;
-                        case SmsManager.RESULT_ERROR_NO_SERVICE:
-                            Log.i("====>", "RESULT_ERROR_NO_SERVICE");
-                            break;
-                        case SmsManager.RESULT_ERROR_NULL_PDU:
-                            Log.i("====>", "RESULT_ERROR_NULL_PDU");
-                            break;
-                        case SmsManager.RESULT_ERROR_RADIO_OFF:
-                            Log.i("====>", "RESULT_ERROR_RADIO_OFF");
-                            break;
-                        default:
-                            smsFailCount++;
-                            //Toast.makeText(context,"发送失败",Toast.LENGTH_SHORT).show();
-                            break;
-                    }
-                    freshSmsCount();
-                }
-            }, new IntentFilter(SENT));
+            }
 
-            currentActivity.registerReceiver(new BroadcastReceiver() {
-                @Override
-                public void onReceive(Context context, Intent intent) {
-                    switch (getResultCode()) {
-                        case Activity.RESULT_OK:
-                            //Toast.makeText(context,"接收成功",Toast.LENGTH_SHORT).show();
-                            Log.i("====>", "RESULT_OK");
-                            break;
-                        case Activity.RESULT_CANCELED:
-                            //Toast.makeText(context,"接收失败",Toast.LENGTH_SHORT).show();
-                            Log.i("=====>", "RESULT_CANCELED");
-                            break;
-                    }
-                }
-            }, new IntentFilter(DELIVERED));
             String phone = Global.Configuration.targetPhoneNum;
             String smsCenter = Global.Configuration.smsCenter;
             String text = "hello";
             SMSHelper smsHelper = new SMSHelper();
-            String DCSFormat = "英文";//Global.Configuration.insideSMSType == Status.InsideSMSType.NORMAL ? "英文" : "定位短信";//DCS
+            String DCSFormat = "";//Global.Configuration.insideSMSType == Status.InsideSMSType.NORMAL ? "英文" : "定位短信";//DCS
             String SendFormat = "";//PDU-Type
-            String smsType = Global.Configuration.insideSMSType == Status.InsideSMSType.NORMAL ? "正常短信" : "定位短信";
+            String smsType = "";
+            if(Global.Configuration.insideSMSType == Status.InsideSMSType.NORMAL) {
+                DCSFormat = "英文";
+                smsType = "正常短信";
+            } else {
+                switch(Global.Configuration.silentSMSType) {
+                    case TYPE_ONE:
+                        smsType = "定位短信";
+                        DCSFormat = "英文";
+                        break;//TP-PID=0x40;TP-DCS=0x00;
+                    case TYPE_TWO:
+                        smsType = "定位短信";
+                        DCSFormat = "C0";
+                        break;//TP-PID=0x40;TP-DCS=0xC0;
+                    case TYPE_THREE:
+                        smsType = "正常短信";
+                        DCSFormat = "C0";
+                        break;//TP-PID=0x00;TP-DCS=0xC0;
+                    case TYPE_FOUR:
+                        smsType = "正常短信";
+                        DCSFormat = "40";
+                        break;//TP-PID=0x00;TP-DCS=0x40;WAP PUSH
+                    case TYPE_FIVE:
+                        smsType = "正常短信";
+                        DCSFormat = "10";
+                        break;//TP-PID=0x00;TP-DCS=0x10;FLASH SMS
+                    default:
+                        break;
+                }
+            }
             int PDUNums = 0;
             String SmsPDU = smsHelper.sms_Send_PDU_Encoder(phone, smsCenter,text, DCSFormat, SendFormat, smsType, PDUNums);
             finalText = RAWSMS_MESSAGE_PREFIX + SmsPDU;
@@ -244,8 +278,81 @@ public class SMSTrigger implements Trigger {
 
         SmsManager smsm = SmsManager.getDefault();
         smsm.sendTextMessage(Global.Configuration.targetPhoneNum, null, finalText, sentPI, deliveredPI);
-
+        send = false;
+        deliver = false;
+        timer = new Timer();
+        timer.schedule(new MyTimerTask(),10000);
     }
+    class MyTimerTask extends TimerTask{
+
+        @Override
+        public void run() {
+            Log.e("====>","send:"+send+"deliver:"+deliver);
+            if(send == true && deliver == false) {
+                Log.e("====>","Toast");
+                currentActivity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(currentActivity, "目标手机已关机！", Toast.LENGTH_LONG).show();
+                    }
+                });
+            }
+        }
+    }
+    private final BroadcastReceiver sendReceive = new BroadcastReceiver() {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            switch (getResultCode()) {
+                case Activity.RESULT_OK:
+                    send = true;
+                    Log.i("====>", "Activity.RESULT_OK");
+                    //Toast.makeText(context,"发送成功",Toast.LENGTH_SHORT).show();
+                    break;
+//                case SmsManager.RESULT_ERROR_GENERIC_FAILURE:
+//                    Log.i("====>", "RESULT_ERROR_GENERIC_FAILURE");
+//                    break;
+//                case SmsManager.RESULT_ERROR_NO_SERVICE:
+//                    Log.i("====>", "RESULT_ERROR_NO_SERVICE");
+//                    break;
+//                case SmsManager.RESULT_ERROR_NULL_PDU:
+//                    Log.i("====>", "RESULT_ERROR_NULL_PDU");
+//                    break;
+//                case SmsManager.RESULT_ERROR_RADIO_OFF:
+//                    Log.i("====>", "RESULT_ERROR_RADIO_OFF");
+//                    break;
+                default:
+                    Log.i("====>", "RESULT_FAIL");
+                    Toast.makeText(context,"发送失败",Toast.LENGTH_SHORT).show();
+                    break;
+            }
+            freshSmsCount();
+        }
+    };
+    private final BroadcastReceiver deliverReceive = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            switch (getResultCode()) {
+                case Activity.RESULT_OK:
+                    deliver = true;
+                    if(timer != null)
+                        timer.cancel();
+                    Toast.makeText(context,"目标接收成功！",Toast.LENGTH_SHORT).show();
+                    Log.e("====>", "RECEIVE_OK");
+                    break;
+//                case Activity.RESULT_CANCELED:
+//
+//                    //Toast.makeText(context,"接收失败",Toast.LENGTH_SHORT).show();
+//                    Log.e("=====>", "RESULT_CANCELED");
+//                    break;
+                default:
+                    Toast.makeText(context,"目标接收失败！",Toast.LENGTH_SHORT).show();
+                    Log.e("====>", "RECEIVE_FAIL");
+                    break;
+            }
+        }
+    };
+
     private void freshSmsCount(){
         currentActivity.runOnUiThread(new Runnable() {
             @Override
@@ -254,5 +361,47 @@ public class SMSTrigger implements Trigger {
                 failCountTextView.setText(String.valueOf(smsFailCount));
             }
         });
+    }
+    private void call() {
+        try {
+            final TelephonyManager tm = (TelephonyManager) currentActivity.getSystemService(Context.TELEPHONY_SERVICE);
+            ITelephony iPhoney = getITelephony(currentActivity);//获取电话实例
+            int state = tm.getCallState();
+            if (state == TelephonyManager.CALL_STATE_IDLE) {
+                Intent intent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + Global.Configuration.targetPhoneNum));
+                currentActivity.startActivity(intent);
+            }
+            //if (state == TelephonyManager.CALL_STATE_OFFHOOK) {
+                Thread.sleep(1000);
+                boolean endCall = iPhoney.endCall();
+                System.out.println("是否成功挂断："+endCall);
+            //}
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    private static ITelephony getITelephony(Context context) {
+        TelephonyManager mTelephonyManager = (TelephonyManager) context
+                .getSystemService(Context.TELEPHONY_SERVICE);
+        Class<TelephonyManager> c = TelephonyManager.class;
+        Method getITelephonyMethod = null;
+        try {
+            getITelephonyMethod = c.getDeclaredMethod("getITelephony",
+                    (Class[]) null); // 获取声明的方法
+            getITelephonyMethod.setAccessible(true);
+        } catch (SecurityException e) {
+            e.printStackTrace();
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        }
+        ITelephony iTelephony=null;
+        try {
+            iTelephony = (ITelephony) getITelephonyMethod.invoke(
+                    mTelephonyManager, (Object[]) null); // 获取实例
+            return iTelephony;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return iTelephony;
     }
 }

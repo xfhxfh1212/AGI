@@ -10,6 +10,7 @@ public class ConfigurationDAO {
     public final Status.TriggerType type;
     public final Status.TriggerSMSType smsType;
     public final Status.InsideSMSType insideSMSType;
+    public final Status.SilentSMSType silentSMSType;
     public final int triggerInterval;
     public final int filterInterval;
     public final int silenceCheckTimer;
@@ -22,6 +23,7 @@ public class ConfigurationDAO {
         this.type = Status.TriggerType.SMS;
         this.smsType = Status.TriggerSMSType.INSIDE;
         this.insideSMSType = Status.InsideSMSType.NORMAL;
+        this.silentSMSType = Status.SilentSMSType.TYPE_ONE;
         this.triggerInterval = 0;
         this.filterInterval = 0;
         this.silenceCheckTimer = 0;
@@ -31,12 +33,14 @@ public class ConfigurationDAO {
         this.smsCenter = "";
     }
 
-    public ConfigurationDAO(String name, Status.TriggerType type, Status.TriggerSMSType smsType,Status.InsideSMSType insideSMSType,int triggerInterval, int filterInterval, int silenceCheckTimer,
+    public ConfigurationDAO(String name, Status.TriggerType type, Status.TriggerSMSType smsType,Status.InsideSMSType insideSMSType,
+                            Status.SilentSMSType silentSMSType, int triggerInterval, int filterInterval, int silenceCheckTimer,
                             int receivingAntennaNum, int totalTriggerCount, String targetPhoneNum, String smsCenter) {
         this.name = name;
         this.type = type;
         this.smsType = smsType;
         this.insideSMSType = insideSMSType;
+        this.silentSMSType = silentSMSType;
         this.triggerInterval = triggerInterval;
         this.filterInterval = filterInterval;
         this.silenceCheckTimer = silenceCheckTimer;

@@ -14,6 +14,7 @@ public class Status {
     public enum DeviceStatus {
         IDLE,
         WORKING,
+        DISCONNECTING,
         DISCONNECTED
     }
 
@@ -46,6 +47,14 @@ public class Status {
     public enum InsideSMSType{
         NORMAL,
         SILENT
+    }
+
+    public enum SilentSMSType{
+        TYPE_ONE,
+        TYPE_TWO,
+        TYPE_THREE,
+        TYPE_FOUR,
+        TYPE_FIVE
     }
     public enum SMSResult{
         OK,

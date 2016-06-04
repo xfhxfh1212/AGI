@@ -5,10 +5,10 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.graphics.Color;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.telephony.TelephonyManager;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -26,6 +26,8 @@ import com.example.jbtang.agi.R;
 import com.example.jbtang.agi.core.CellInfo;
 import com.example.jbtang.agi.core.Global;
 import com.example.jbtang.agi.core.Status;
+import com.example.jbtang.agi.dao.cellinfos.CellInfoDAO;
+import com.example.jbtang.agi.dao.cellinfos.CellInfoDBManager;
 import com.example.jbtang.agi.device.DeviceManager;
 import com.example.jbtang.agi.device.MonitorDevice;
 import com.example.jbtang.agi.external.MonitorApplication;
@@ -64,7 +66,11 @@ public class CellMonitorActivity extends AppCompatActivity {
     private TextView deviceStatusText;
     private TextView deviceColorOne;
     private TextView deviceColorTwo;
+    private TextView deviceColorThree;
+    private TextView deviceColorFour;
     private MonitorHelper monitorHelper;
+    private CellInfoDBManager cellInfoDBManager;
+    private List<CellInfo> cellInfoDBList;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -77,6 +83,9 @@ public class CellMonitorActivity extends AppCompatActivity {
 
     @Override
     public void onDestroy() {
+        cellInfoDBManager.clear();
+        cellInfoDBManager.add(cellInfoList);
+        cellInfoDBManager.closeDB();
         unregisterReceiver(receiver);
         //unbindService(connection);
         //stopService(startIntent);
@@ -118,6 +127,9 @@ public class CellMonitorActivity extends AppCompatActivity {
         manualPCI = (EditText) findViewById(R.id.cell_moitor_manual_pci);
         manualChoose = (CheckBox) findViewById(R.id.cell_moitor_manual_choose);
 
+        cellInfoDBManager = new CellInfoDBManager(this);
+        cellInfoDBList = getCellInfoList();
+
         cellInfoList = new ArrayList<>();
         updatingCellInfoList = new ArrayList<>();
 
@@ -154,9 +166,23 @@ public class CellMonitorActivity extends AppCompatActivity {
         deviceStatusText = (TextView) findViewById(R.id.cell_monitor_device_status_text);
         deviceColorOne = (TextView) findViewById(R.id.cell_monitor_device_background_one);
         deviceColorTwo = (TextView) findViewById(R.id.cell_monitor_device_background_two);
+        deviceColorThree = (TextView) findViewById(R.id.cell_monitor_device_background_three);
+        deviceColorFour = (TextView) findViewById(R.id.cell_monitor_device_background_four);
 
     }
-
+    private List<CellInfo> getCellInfoList(){
+        List<CellInfoDAO> cellInfoDAOList = cellInfoDBManager.listDB();
+        List<CellInfo> cellInfoDBList = new ArrayList<>();
+        for(CellInfoDAO dao : cellInfoDAOList){
+            CellInfo cellInfo = new CellInfo();
+            cellInfo.earfcn = dao.earfcn;
+            cellInfo.pci = dao.pci;
+            cellInfo.tai = dao.tai;
+            cellInfo.ecgi = dao.ecgi;
+            cellInfoDBList.add(cellInfo);
+        }
+        return cellInfoDBList;
+    }
 //    private MonitorService mBoundService;
 //
 //    private ServiceConnection connection = new ServiceConnection() {
@@ -234,14 +260,19 @@ public class CellMonitorActivity extends AppCompatActivity {
     }
 
     private void refreshStatusBar(Intent intent) {
-        final int colorOne = intent.getIntExtra("colorOne", Color.RED);
-        final int colorTwo = intent.getIntExtra("colorTwo", Color.RED);
-        final String statusText = intent.getStringExtra("statusText");
+        Bundle bundle = intent.getExtras();
+        final int colorOne = bundle.getInt("colorOne");
+        final int colorTwo = bundle.getInt("colorTwo");
+        final int colorThree = bundle.getInt("colorThree");
+        final int colorFour = bundle.getInt("colorFour");
+        final String statusText = bundle.getString("statusText");
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 deviceColorOne.setBackgroundColor(colorOne);
                 deviceColorTwo.setBackgroundColor(colorTwo);
+                deviceColorThree.setBackgroundColor(colorThree);
+                deviceColorFour.setBackgroundColor(colorFour);
                 deviceStatusText.setText(statusText);
                 //Log.d("Broadcast","refresh");
             }
@@ -290,6 +321,37 @@ public class CellMonitorActivity extends AppCompatActivity {
             info.tai = mServCellMessage.getTAC();
             info.ecgi = mServCellMessage.getCellId();
             info.isChecked = monitorCellSet.contains(info);
+            if(info.tai == Short.MAX_VALUE || info.ecgi == Integer.MAX_VALUE){
+                for(CellInfo cellInfo : cellInfoDBList){
+                    if(cellInfo.equals(info)){
+                        info.tai = cellInfo.tai;
+                        info.ecgi = cellInfo.ecgi;
+                        cellInfoDBList.remove(cellInfo);
+                        cellInfoDBList.add(cellInfo);
+                        break;
+                    }
+                }
+            } else {
+                int i = 0;
+                for(CellInfo cellInfo : cellInfoDBList){
+                    i++;
+                    if(cellInfo.equals(info)){
+                        cellInfo.tai = info.tai;
+                        cellInfo.ecgi = info.ecgi;
+                        cellInfoDBList.remove(cellInfo);
+                        cellInfoDBList.add(cellInfo);
+                        break;
+                    }
+                }
+                if(i == cellInfoDBList.size()) {
+                    if(cellInfoDBList.size() == 10){
+                        cellInfoDBList.remove(0);
+                        cellInfoDBList.add(info);
+                    } else {
+                        cellInfoDBList.add(info);
+                    }
+                }
+            }
 
             if (updatingCellInfoList.isEmpty()) {
                 updatingCellInfoList.add(info);
@@ -325,14 +387,23 @@ public class CellMonitorActivity extends AppCompatActivity {
                 info.pci = (short) ncellInfo.getPCI();
                 info.rsrp = ncellInfo.getRSRP();
                 info.isChecked = monitorCellSet.contains(info);
+                for(CellInfo cellInfo : cellInfoDBList){
+                    if(info.equals(cellInfo)) {
+                        info.tai = cellInfo.tai;
+                        info.ecgi = cellInfo.ecgi;
+                        break;
+                    }
+                }
                 ret.add(info);
             }
 
             if (ret.size() > 1) {
                 synchronized (updatingCellInfoList) {
-                    CellInfo serveCell = updatingCellInfoList.get(0);
-                    updatingCellInfoList = new ArrayList<>(ret);
-                    updatingCellInfoList.set(0, serveCell);
+                    if(!updatingCellInfoList.isEmpty()) {
+                        CellInfo serveCell = updatingCellInfoList.get(0);
+                        updatingCellInfoList = new ArrayList<>(ret);
+                        updatingCellInfoList.set(0, serveCell);
+                    }
                 }
             }
         }
@@ -510,7 +581,7 @@ public class CellMonitorActivity extends AppCompatActivity {
 
     private boolean validate(Map<Status.BoardType, List<MonitorDevice>> deviceMap,
                              Map<Status.BoardType, List<CellInfo>> cellInfoMap) {
-        if(cellInfoMap.get(Status.BoardType.FDD).size() == 0 &&cellInfoMap.get(Status.BoardType.TDD).size() == 0){
+        if(cellInfoMap.get(Status.BoardType.FDD).size() == 0 && cellInfoMap.get(Status.BoardType.TDD).size() == 0){
             new AlertDialog.Builder(this)
                     .setTitle("非法配置")
                     .setMessage("未选择守控小区!")
@@ -542,6 +613,9 @@ public class CellMonitorActivity extends AppCompatActivity {
                 CellMonitor.getInstance().prepareMonitor(deviceMap.get(type).get(index), cellInfoList.get(index));
             }
         }
+        for(MonitorDevice device : DeviceManager.getInstance().getDevices()) {
+            Log.e("Test", device.getName() + device.getCellInfo());
+        }
     }
 
     private Map<Status.BoardType, List<MonitorDevice>> distributeMonitorDevices() {
@@ -552,6 +626,7 @@ public class CellMonitorActivity extends AppCompatActivity {
         for (MonitorDevice device : DeviceManager.getInstance().getDevices()) {
 
             ret.get(device.getType()).add(device);
+            Log.e("Test", device.getName());
         }
         return ret;
     }

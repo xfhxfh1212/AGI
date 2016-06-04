@@ -18,7 +18,7 @@ public class ConfigurationDBManager {
         helper = new ConfigurationDBHelper(context);
         db = helper.getWritableDatabase();
         db.execSQL("CREATE TABLE IF NOT EXISTS " + ConfigurationDBHelper.TABLE_NAME +
-                "(name TEXT PRIMARY KEY, triggerType INTEGER, triggerSMSType INTEGER,insideSMSType INTEGER," +
+                "(name TEXT PRIMARY KEY, triggerType INTEGER, triggerSMSType INTEGER,insideSMSType INTEGER, silentSMSType INTEGER, " +
                 "triggerInterval INTEGER, filterInterval INTEGER,silenceCheckTimer INTEGER, " +
                 "receivingAntennaNum INTEGER, totalTriggerCount INTEGER, targetPhoneNum TEXT, smsCenter TEXT)");
     }
@@ -42,8 +42,8 @@ public class ConfigurationDBManager {
     }
 
     private void insert(ConfigurationDAO dao) {
-        db.execSQL("INSERT INTO " + ConfigurationDBHelper.TABLE_NAME + " VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                new Object[]{dao.name, dao.type.ordinal(),dao.smsType.ordinal(),dao.insideSMSType.ordinal(),
+        db.execSQL("INSERT INTO " + ConfigurationDBHelper.TABLE_NAME + " VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                new Object[]{dao.name, dao.type.ordinal(),dao.smsType.ordinal(),dao.insideSMSType.ordinal(),dao.silentSMSType.ordinal(),
                         dao.triggerInterval, dao.filterInterval, dao.silenceCheckTimer, dao.receivingAntennaNum,
                         dao.totalTriggerCount, dao.targetPhoneNum,dao.smsCenter});
     }
@@ -53,6 +53,7 @@ public class ConfigurationDBManager {
         cv.put("triggerType", dao.type.ordinal());
         cv.put("triggerSMSType",dao.smsType.ordinal());
         cv.put("insideSMSType",dao.insideSMSType.ordinal());
+        cv.put("silentSMSType",dao.silentSMSType.ordinal());
         cv.put("triggerInterval", dao.triggerInterval);
         cv.put("filterInterval", dao.filterInterval);
         cv.put("silenceCheckTimer", dao.silenceCheckTimer);
@@ -98,6 +99,7 @@ public class ConfigurationDBManager {
             int type = c.getInt(c.getColumnIndex("triggerType"));
             int smsType = c.getInt(c.getColumnIndex("triggerSMSType"));
             int insideSMSType = c.getInt(c.getColumnIndex("insideSMSType"));
+            int silentSMSType = c.getInt(c.getColumnIndex("silentSMSType"));
             int triggerInterval = c.getInt(c.getColumnIndex("triggerInterval"));
             int filterInterval = c.getInt(c.getColumnIndex("filterInterval"));
             int silenceCheckTimer = c.getInt(c.getColumnIndex("silenceCheckTimer"));
@@ -106,7 +108,7 @@ public class ConfigurationDBManager {
             String targetPhoneNum = c.getString(c.getColumnIndex("targetPhoneNum"));
             String smsCenter = c.getString(c.getColumnIndex("smsCenter"));
             dao = new ConfigurationDAO(name, Status.TriggerType.values()[type], Status.TriggerSMSType.values()[smsType],
-                    Status.InsideSMSType.values()[insideSMSType],triggerInterval, filterInterval,
+                    Status.InsideSMSType.values()[insideSMSType],Status.SilentSMSType.values()[silentSMSType],triggerInterval, filterInterval,
                     silenceCheckTimer, receivingAntennaNum, totalTriggerCount, targetPhoneNum, smsCenter);
         }
         return dao;

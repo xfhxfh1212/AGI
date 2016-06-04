@@ -13,10 +13,16 @@ import com.example.jbtang.agi.messages.MessageDispatcher;
 import com.example.jbtang.agi.messages.base.MsgHeader;
 import com.example.jbtang.agi.messages.base.MsgTypes;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.ref.WeakReference;
 import java.util.Date;
+
+import ch.ethz.ssh2.Connection;
+import ch.ethz.ssh2.Session;
+import ch.ethz.ssh2.StreamGobbler;
 
 /**
  * Base device class
@@ -39,6 +45,20 @@ public class Device {
     private static final int Data_RECEIVE_BUFFER_SIZE = 10240;
     private static final int Message_RECEIVE_BUFFER_SIZE = 256;
     protected static final String TAG = "Device";
+
+    private static final String REBOOT_USERNAME = "root";
+    private static final String REBOOT_PASSWORD = "13M1877";
+    private static final int REBOOT_PORT = 22;
+    private static final String REBOOT_CMD = "reboot";
+
+    //private int index;
+
+//    public int getIndex() {
+//        return index;
+//    }
+//    public void setIndex(int index) {
+//        this.index = index;
+//    }
 
     public String getName() {
         return name;
@@ -64,6 +84,10 @@ public class Device {
         return status == Status.DeviceStatus.WORKING;
     }
 
+    public Status.DeviceStatus getStatus() {
+        return status;
+    }
+
     public Device(String name, String IP, int dataPort, int messagePort) {
         this.name = name;
         this.IP = IP;
@@ -71,13 +95,14 @@ public class Device {
         this.messagePort = messagePort;
         this.status = Status.DeviceStatus.DISCONNECTED;
         this.checkStatusStart = false;
+        //this.index = 0;
     }
 
     public void connect() throws Exception {
-        this.myHandler = new myHandler(Device.this);
         if (status != Status.DeviceStatus.DISCONNECTED) {
             return;
         }
+        this.myHandler = new myHandler(Device.this);
         if (client == null) {
             client = new TCPClient(IP, dataPort, messagePort, myHandler);
             Global.ThreadPool.cachedThreadPool.execute(client);
@@ -112,28 +137,18 @@ public class Device {
     }
 
     private class CheckStatusRunnable implements Runnable {
-        int connectCount;
         @Override
         public void run() {
             while (checkStatusStart) {
                 currentTime = new Date();
                 long time = (currentTime.getTime() - receiveTime.getTime()) / 1000;
-                Log.e(TAG,"time:" + String.valueOf(time) + "connectCount:"+ String.valueOf(connectCount));
-                if (time > 7) {
-                    status = Status.DeviceStatus.DISCONNECTED;
-                    if (connectCount > 5) {
-                        checkStatusStart = false;
+                Log.e(TAG,"time:" + String.valueOf(time));
+                if (time > 10) {
+                    status = Status.DeviceStatus.DISCONNECTING;
+                    if (time > 20) {
                         dispose();
                         return;
                     }
-                    try {
-                        //send(GetFrequentlyUsedMsg.getDeviceStateMsg);
-                    } catch (Exception e) {
-                        Log.e(TAG,e.toString());
-                    }
-                    connectCount++;
-                } else {
-                    connectCount = 0;
                 }
                 try {
                     Thread.sleep(3000);
@@ -253,6 +268,7 @@ public class Device {
 
     private void changeStatus(int msgType) {
         switch (status) {
+            case DISCONNECTING:
             case DISCONNECTED:
                 status = Status.DeviceStatus.IDLE;
                 break;
@@ -278,7 +294,53 @@ public class Device {
                 break;
         }
     }
+    public void reboot()  {
+        Global.ThreadPool.cachedThreadPool.execute(new Runnable() {
+            @Override
+            public void run() {
+                checkStatusStart = false;
+                Connection conn = null;
+                Session session = null;
 
+                try {
+                    conn = new Connection(getIP());
+                    conn.connect();
+                    boolean isAuthenticated = conn.authenticateWithPassword(REBOOT_USERNAME, REBOOT_PASSWORD);
+
+                    if (!isAuthenticated) {
+                        Log.e(TAG, "Authentication failed.");
+                    }
+
+                    session = conn.openSession();
+                    session.execCommand(REBOOT_CMD);
+
+                    Log.e(TAG, "Here is some information about the remote host:");
+
+                    InputStream stdout = new StreamGobbler(session.getStdout());
+
+                    BufferedReader br = new BufferedReader(new InputStreamReader(stdout));
+
+                    while (true) {
+                        String line = br.readLine();
+                        if (line == null)
+                            break;
+                        Log.e(TAG, line);
+                    }
+                    //Thread.sleep(3000);
+                    //status = Status.DeviceStatus.DISCONNECTED;
+                    DeviceManager.getInstance().remove(getName());
+                    dispose();
+                    Log.i(TAG, "ExitCode: " + session.getExitStatus());
+                    session.close();
+                    conn.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                //status = Status.DeviceStatus.DISCONNECTED;
+                Log.e(TAG,"status after reboot"+status);
+            }
+        });
+    }
     public void dispose() {
         //closeReceiveThread();
         closeACKInputStream();
