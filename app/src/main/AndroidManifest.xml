@@ -70,7 +70,7 @@
             android:launchMode="singleTask" />
         <activity
             android:name=".ui.InterferenceActivity"
-            android:label="@string/title_main_menu_interference_detection"
+            android:label="@string/title_main_menu_environment_detection"
             android:launchMode="singleTask" />
         <activity
             android:name=".ui.ConfigurationActivity"

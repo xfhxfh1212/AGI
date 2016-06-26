@@ -48,7 +48,7 @@ public class Interference {
     private List<CountSortedInfo> countSortedInfoList;
     private myHandler handler;
     private Trigger trigger;
-    private Boolean isEnvironment;
+    private Boolean isInterference;
     private Status.Service service;
     public int stmsiCount;
     public int sumCount;
@@ -115,7 +115,7 @@ public class Interference {
         sTMSI2Count.clear();
         countSortedInfoList.clear();
         interferenceTime = new Date();
-        isEnvironment = ((CheckBox) currentActivity.findViewById(R.id.interference_environment_check)).isChecked();
+        isInterference = ((CheckBox) currentActivity.findViewById(R.id.interference_environment_check)).isChecked();
 
         service = Status.Service.INTERFERENCE;
         trigger.start(activity, service);
@@ -257,7 +257,7 @@ public class Interference {
                 return;
             }
             difTime = (currentTime.getTime() - interferenceTime.getTime()) / 1000;
-            if (!isEnvironment && difTime < 10) {
+            if (isInterference && difTime < 10) {
                 return;
             }
             Log.e(TAG, String.format("---------Find STMSI :%s Time :%d Type :%d-----------", stmsi, difTime, mu8EstCause));
@@ -268,7 +268,7 @@ public class Interference {
 
             if (sTMSI2Count.containsKey(stmsi)) {
                 count = Integer.valueOf(sTMSI2Count.get(stmsi).count);
-            } else if (isEnvironment) {
+            } else if (!isInterference) {
                 for (Map.Entry<String, CountSortedInfo> entry : sTMSI2Count.entrySet()) {
                     String temStmsi = entry.getKey();
                     if (stmsi.substring(0, 2).equals(temStmsi.substring(0, 2))) {

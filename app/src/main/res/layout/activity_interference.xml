@@ -131,7 +131,7 @@
             android:id="@+id/interference_environment_check"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
-            android:text="@string/page_interference_environment"
+            android:text="@string/page_interference_detective"
             android:layout_marginRight="20dp"/>
         <Button
             android:id="@+id/interference_start_button"

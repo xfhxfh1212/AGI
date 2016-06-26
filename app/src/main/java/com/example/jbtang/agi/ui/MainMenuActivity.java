@@ -96,7 +96,7 @@ public class MainMenuActivity extends AppCompatActivity {
         texts = new String[]{this.getString(R.string.title_main_menu_cell_monitor),
                 this.getString(R.string.title_main_menu_find_STMSI),
                 this.getString(R.string.title_main_menu_orientation),
-                this.getString(R.string.title_main_menu_interference_detection),
+                this.getString(R.string.title_main_menu_environment_detection),
                 this.getString(R.string.title_main_menu_configuration),
                 this.getString(R.string.title_main_menu_cellPhone_info)};
         itemList = new ArrayList<HashMap<String, Object>>();
