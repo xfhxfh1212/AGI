@@ -1,35 +1,25 @@
 package com.example.jbtang.agi.service;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.os.Handler;
 import android.os.Message;
-import android.support.annotation.NonNull;
 import android.util.Log;
-import android.util.Pair;
 import android.widget.Button;
 import android.widget.CheckBox;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.jbtang.agi.R;
 import com.example.jbtang.agi.core.CellInfo;
 import com.example.jbtang.agi.core.Global;
 import com.example.jbtang.agi.core.Status;
-import com.example.jbtang.agi.core.type.U32;
-import com.example.jbtang.agi.core.type.U8;
 import com.example.jbtang.agi.device.DeviceManager;
 import com.example.jbtang.agi.device.MonitorDevice;
 import com.example.jbtang.agi.messages.MessageDispatcher;
 import com.example.jbtang.agi.messages.ag2pc.MsgL2P_AG_CELL_CAPTURE_IND;
 import com.example.jbtang.agi.messages.ag2pc.MsgL2P_AG_UE_CAPTURE_IND;
 import com.example.jbtang.agi.messages.base.MsgTypes;
-import com.example.jbtang.agi.trigger.PhoneTrigger;
 import com.example.jbtang.agi.trigger.SMSTrigger;
 import com.example.jbtang.agi.trigger.Trigger;
-import com.example.jbtang.agi.ui.FindSTMSIActivity;
-
-import org.w3c.dom.Text;
 
 import java.lang.ref.WeakReference;
 import java.text.SimpleDateFormat;
@@ -45,13 +35,12 @@ import java.util.TimerTask;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
-
 /**
- * Created by jbtang on 11/1/2015.
+ * Created by ai on 16/6/19.
  */
-public class FindSTMSI {
-    private static final String TAG = "FindSTMSI";
-    private static final FindSTMSI instance = new FindSTMSI();
+public class Interference {
+    private static final String TAG = "Interference";
+    private static final Interference instance = new Interference();
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("HH:mm:ss");
     private Activity currentActivity;
 
@@ -59,11 +48,12 @@ public class FindSTMSI {
     private List<CountSortedInfo> countSortedInfoList;
     private myHandler handler;
     private Trigger trigger;
-    private CheckBox filterCheckBox;
+    private Boolean isEnvironment;
     private Status.Service service;
     public int stmsiCount;
     public int sumCount;
     public int nullCount;
+    private Date interferenceTime;
     private Map<String, Timer> timerMap;
 
     public List<CountSortedInfo> getCountSortedInfoList() {
@@ -78,7 +68,7 @@ public class FindSTMSI {
     }
 
 
-    private FindSTMSI() {
+    private Interference() {
         sTMSI2Count = new HashMap<>();
         countSortedInfoList = new ArrayList<>();
         handler = new myHandler(this);
@@ -88,17 +78,17 @@ public class FindSTMSI {
 
     }
 
-    public static FindSTMSI getInstance() {
+    public static Interference getInstance() {
         return instance;
     }
 
     private static int handlerCount = 0;
 
     static class myHandler extends Handler {
-        private final WeakReference<FindSTMSI> mOuter;
+        private final WeakReference<Interference> mOuter;
 
-        public myHandler(FindSTMSI findSTMSI) {
-            mOuter = new WeakReference<>(findSTMSI);
+        public myHandler(Interference interference) {
+            mOuter = new WeakReference<>(interference);
         }
 
         @Override
@@ -124,10 +114,12 @@ public class FindSTMSI {
         nullCount = 0;
         sTMSI2Count.clear();
         countSortedInfoList.clear();
-        Log.e("Test", activity.getLocalClassName());
-        filterCheckBox = (CheckBox) activity.findViewById(R.id.find_stmsi_filter_checkbox);
-        service = Status.Service.FINDSTMIS;
+        interferenceTime = new Date();
+        isEnvironment = ((CheckBox) currentActivity.findViewById(R.id.interference_environment_check)).isChecked();
+
+        service = Status.Service.INTERFERENCE;
         trigger.start(activity, service);
+
         for (MonitorDevice device : DeviceManager.getInstance().getDevices()) {
             if (device.getCellInfo() != null) {
                 timerMap.put(device.getName(), new Timer());
@@ -188,12 +180,10 @@ public class FindSTMSI {
         currentActivity.runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                if (nextName != "") {
+                if (nextName != "")
                     Toast.makeText(currentActivity, String.format("%s下行同步丢失，切换至设备%s！", deviceName, nextName), Toast.LENGTH_LONG).show();
-                } else{
-                    //Toast.makeText(currentActivity, String.format("%s出现异常，正在恢复初始状态！", deviceName), Toast.LENGTH_LONG).show();
+                else
                     Toast.makeText(currentActivity, String.format("%s下行同步丢失，重新同步中...", deviceName), Toast.LENGTH_LONG).show();
-                }
                 if (timerMap.isEmpty()) {
                     trigger.stop();
                     Toast.makeText(currentActivity, "搜索已停止！", Toast.LENGTH_LONG).show();
@@ -266,19 +256,36 @@ public class FindSTMSI {
                 nullCount++;
                 return;
             }
-
-            difTime = (currentTime.getTime() - Global.sendTime.getTime()) / 1000;
-            if (difTime > Global.Configuration.filterInterval) {
+            difTime = (currentTime.getTime() - interferenceTime.getTime()) / 1000;
+            if (!isEnvironment && difTime < 10) {
                 return;
             }
-
             Log.e(TAG, String.format("---------Find STMSI :%s Time :%d Type :%d-----------", stmsi, difTime, mu8EstCause));
             if (!(mu8EstCause == 0x02)) {
                 return;
             }
-            if (filterCheckBox.isChecked() && Global.filterStmsiMap.containsKey(stmsi))
-                return;
-            int count = sTMSI2Count.containsKey(stmsi) ? Integer.valueOf(sTMSI2Count.get(stmsi).count) : 0;
+            int count = 0;
+
+            if (sTMSI2Count.containsKey(stmsi)) {
+                count = Integer.valueOf(sTMSI2Count.get(stmsi).count);
+            } else if (isEnvironment) {
+                for (Map.Entry<String, CountSortedInfo> entry : sTMSI2Count.entrySet()) {
+                    String temStmsi = entry.getKey();
+                    if (stmsi.substring(0, 2).equals(temStmsi.substring(0, 2))) {
+                        int j = 0;
+                        for (int i = 2; i < 10; i += 2) {
+                            if (stmsi.substring(i, i + 2).equals(temStmsi.substring(i, i + 2))) {
+                                j++;
+                            }
+                        }
+                        if (j >= 2) {
+                            count = Integer.valueOf(sTMSI2Count.get(temStmsi).count);
+                            sTMSI2Count.remove(temStmsi);
+                            break;
+                        }
+                    }
+                }
+            }
             CountSortedInfo info = new CountSortedInfo();
 
             info.stmsi = stmsi;
@@ -331,5 +338,4 @@ public class FindSTMSI {
         public String pci;
         public String earfcn;
     }
-
 }

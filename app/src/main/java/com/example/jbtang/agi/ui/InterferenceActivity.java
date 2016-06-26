@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
@@ -18,6 +19,7 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.BaseAdapter;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ListView;
@@ -26,15 +28,20 @@ import android.widget.TextView;
 import com.example.jbtang.agi.R;
 import com.example.jbtang.agi.core.Global;
 import com.example.jbtang.agi.core.Status;
+import com.example.jbtang.agi.dao.FindSTMSIInfos.FindSTMSIInfoManager;
+import com.example.jbtang.agi.dao.InterferenceInfos.InterferenceInfoDAO;
+import com.example.jbtang.agi.dao.InterferenceInfos.InterferenceInfoManager;
 import com.example.jbtang.agi.device.DeviceManager;
 import com.example.jbtang.agi.device.MonitorDevice;
 import com.example.jbtang.agi.external.MonitorApplication;
 import com.example.jbtang.agi.external.MonitorHelper;
-import com.example.jbtang.agi.service.FindSTMSI;
+import com.example.jbtang.agi.service.Interference;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 
 import io.fmaster.LTEServCellMessage;
@@ -42,7 +49,7 @@ import io.fmaster.LTEServCellMessage;
 public class InterferenceActivity extends AppCompatActivity {
     private boolean startToFind;
 
-    private List<FindSTMSI.CountSortedInfo> countSortedInfoList;
+    private List<Interference.CountSortedInfo> countSortedInfoList;
 
     private Button startButton;
     private Button stopButton;
@@ -70,7 +77,13 @@ public class InterferenceActivity extends AppCompatActivity {
     private TextView pciNumTwo;
     private TextView pciNumThree;
     private TextView pciNumFour;
+    private CheckBox environmentCheck;
+    private boolean isEnvironment;
     private static final int STMSICountMaxValuePerMinute = 400;
+    private InterferenceInfoManager interferenceInfoManager;
+    private SharedPreferences sharedPreferences;
+    private final static String CONFIG_DERECTORY = "interference";
+    private final static String ENVIRONMENTCHEKC = "isEnvironment";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -84,17 +97,28 @@ public class InterferenceActivity extends AppCompatActivity {
     }
     @Override
     protected void onDestroy() {
+        interferenceInfoManager.clear();
+        interferenceInfoManager.add(countSortedInfoList);
+        interferenceInfoManager.closeDB();
+        if(startToFind) {
+            Interference.getInstance().stop();
+            startToFind = false;
+        }
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        if (environmentCheck.isChecked()) {
+            editor.putString(ENVIRONMENTCHEKC, "true");
+        } else {
+            editor.putString(ENVIRONMENTCHEKC, "false");
+        }
+        editor.commit();
+        unregisterReceiver(receiver);
+        monitorHelper.unbindservice(InterferenceActivity.this);
         super.onDestroy();
     }
 
     @Override
     protected void onStop() {
-        if(startToFind) {
-            FindSTMSI.getInstance().stop();
-            startToFind = false;
-        }
-        unregisterReceiver(receiver);
-        monitorHelper.unbindservice(InterferenceActivity.this);
+
         super.onStop();
     }
 
@@ -124,8 +148,10 @@ public class InterferenceActivity extends AppCompatActivity {
         LayoutInflater inflater = getLayoutInflater();
         LinearLayout linearLayout = (LinearLayout) findViewById(R.id.interference_layout_cell_status_bar);
         LinearLayout cellStatusBar = (LinearLayout) inflater.inflate(R.layout.cell_status_bar,null).findViewById(R.id.cell_status_bar_linearlayout);
-
         linearLayout.addView(cellStatusBar);
+
+        interferenceInfoManager = new InterferenceInfoManager(this);
+        countSortedInfoList = getStmsiInfoList();
 
         startButton = (Button) findViewById(R.id.interference_start_button);
         stopButton = (Button) findViewById(R.id.interference_stop_button);
@@ -146,12 +172,20 @@ public class InterferenceActivity extends AppCompatActivity {
         pciNumFour = (TextView)findViewById(R.id.cell_status_bar_pci_num_four);
         sumCountText = (TextView) findViewById(R.id.interference_sum_count_text);
         nullCountText = (TextView) findViewById(R.id.interference_null_count_text);
+        environmentCheck = (CheckBox) findViewById(R.id.interference_environment_check);
+        sharedPreferences =  getSharedPreferences(CONFIG_DERECTORY, Context.MODE_PRIVATE);
+        if(sharedPreferences.getString(ENVIRONMENTCHEKC,"false").equals("true")){
+            environmentCheck.setChecked(true);
+        } else {
+            environmentCheck.setChecked(false);
+        }
 
         targetPhone.setText(Global.Configuration.targetPhoneNum);
 
         count = (ListView) findViewById(R.id.interference_count_listView);
         CountAdapter countAdapter = new CountAdapter(this);
         count.setAdapter(countAdapter);
+        ((CountAdapter) count.getAdapter()).notifyDataSetChanged();
 
         startButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -160,20 +194,28 @@ public class InterferenceActivity extends AppCompatActivity {
                     return;
                 if(DeviceManager.getInstance().getDevices().size() == 0)
                     return;
-                FindSTMSI.getInstance().start(InterferenceActivity.this);
+                Interference.getInstance().start(InterferenceActivity.this);
                 startToFind = true;
                 startButton.setEnabled(false);
+                isEnvironment = environmentCheck.isChecked();
             }
         });
         stopButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                FindSTMSI.getInstance().stop();
+                Interference.getInstance().stop();
                 startToFind = false;
-                try {
-                    Thread.sleep(1000);
-                } catch(Exception e){}
-                startButton.setEnabled(true);
+                new Timer().schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        InterferenceActivity.this.runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                startButton.setEnabled(true);
+                            }
+                        });
+                    }
+                }, 2000);
             }
         });
 
@@ -195,16 +237,29 @@ public class InterferenceActivity extends AppCompatActivity {
         monitorHelper = new MonitorHelper();
         monitorHelper.bindService(InterferenceActivity.this);
     }
-
+    private List<Interference.CountSortedInfo> getStmsiInfoList(){
+        List<InterferenceInfoDAO> InterferenceInfoDAOList = interferenceInfoManager.listDB();
+        List<Interference.CountSortedInfo> stmsiInfoDBList = new ArrayList<>();
+        for(InterferenceInfoDAO dao : InterferenceInfoDAOList) {
+            Interference.CountSortedInfo countSortedInfo = new Interference.CountSortedInfo();
+            countSortedInfo.stmsi = dao.stmsi;
+            countSortedInfo.count = dao.count;
+            countSortedInfo.time = dao.time;
+            countSortedInfo.pci = dao.pci;
+            countSortedInfo.earfcn = dao.earfcn;
+            stmsiInfoDBList.add(countSortedInfo);
+        }
+        return stmsiInfoDBList;
+    }
     private void refresh() {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 countSortedInfoList.clear();
-                countSortedInfoList.addAll(FindSTMSI.getInstance().getCountSortedInfoList());
+                countSortedInfoList.addAll(Interference.getInstance().getCountSortedInfoList());
                 ((CountAdapter) count.getAdapter()).notifyDataSetChanged();
-                sumCountText.setText(String.valueOf(FindSTMSI.getInstance().sumCount));
-                nullCountText.setText(String.valueOf(FindSTMSI.getInstance().nullCount));
+                sumCountText.setText(String.valueOf(Interference.getInstance().sumCount));
+                nullCountText.setText(String.valueOf(Interference.getInstance().nullCount));
                 int position = 0;
                 for (MonitorDevice device : DeviceManager.getInstance().getAllDevices()) {
                     if(device.getStatus() != Status.DeviceStatus.DISCONNECTED ) {
@@ -243,13 +298,13 @@ public class InterferenceActivity extends AppCompatActivity {
             case 2:{
                 cellConfirmColorThree.setBackgroundColor(color);
                 cellRsrpThree.setText(text);
-                pciNumTwo.setText(pci);
+                pciNumThree.setText(pci);
                 break;
             }
             case 3:{
                 cellConfirmColorFour.setBackgroundColor(color);
                 cellRsrpFour.setText(text);
-                pciNumTwo.setText(pci);
+                pciNumFour.setText(pci);
                 break;
             }
             default:break;
@@ -406,10 +461,10 @@ public class InterferenceActivity extends AppCompatActivity {
         @Override
         public void run() {
             if(startToFind) {
-                if (FindSTMSI.getInstance().stmsiCount < STMSICountMaxValuePerMinute) {
-                    FindSTMSI.getInstance().stmsiCount = 0;
+                if (Interference.getInstance().stmsiCount < STMSICountMaxValuePerMinute) {
+                    Interference.getInstance().stmsiCount = 0;
                 } else {
-                    //FindSTMSI.getInstance().stop();
+                    //Interference.getInstance().stop();
                     //startToFind = false;
                     InterferenceActivity.this.runOnUiThread(new Runnable() {
                         @Override

@@ -298,7 +298,7 @@ public class MainMenuActivity extends AppCompatActivity {
             for(MonitorDevice device:DeviceManager.getInstance().getAllDevices()){
                 try {
                     device.connect();
-                    //Thread.sleep(1000);
+                    Thread.sleep(100);
                     if(device.isConnected()) {
                         DeviceManager.getInstance().add(device);
                         Log.e("Test","连接设备：" + device.getName());
@@ -373,12 +373,26 @@ public class MainMenuActivity extends AppCompatActivity {
                     }
                     case ConfigurationActivity.DELETE_DEVICE_FLAG: {
                         String name = intent.getStringExtra("name");
-                        MonitorDevice device = DeviceManager.getInstance().getDevice(name);
+                        MonitorDevice device = DeviceManager.getInstance().getFromAll(name);
                         if (device != null) {
                             device.release();
-                            DeviceManager.getInstance().remove(name);
                         }
+                        DeviceManager.getInstance().remove(name);
                         DeviceManager.getInstance().removeFromAll(name);
+                        Log.e(TAG,"AllDevices Size" + DeviceManager.getInstance().getAllDevices().size());
+                        break;
+                    }
+                    case ConfigurationActivity.CHANGE_DEVICE_FLAG: {
+                        String name = intent.getStringExtra("name");
+                        String ip = intent.getStringExtra("ip");
+                        Status.BoardType type = (Status.BoardType) intent.getSerializableExtra("type");
+                        MonitorDevice device = DeviceManager.getInstance().getFromAll(name);
+                        if (device != null) {
+                            device.release();
+                        }
+                        DeviceManager.getInstance().remove(name);
+                        Log.e("Device","replaceName"+name);
+                        DeviceManager.getInstance().addToAll(new MonitorDevice(name, ip, type));
                         Log.e(TAG,"AllDevices Size" + DeviceManager.getInstance().getAllDevices().size());
                         break;
                     }
@@ -468,7 +482,7 @@ public class MainMenuActivity extends AppCompatActivity {
         Global.Configuration.name = Global.UserInfo.user_name;
         Global.Configuration.type = (dao == null ? Status.TriggerType.SMS : dao.type);
         Global.Configuration.smsType = (dao == null ? Status.TriggerSMSType.INSIDE : dao.smsType);
-        Global.Configuration.insideSMSType = (dao == null ? Status.InsideSMSType.NORMAL : dao.insideSMSType);
+        Global.Configuration.insideSMSType = (dao == null ? Status.InsideSMSType.SILENT : dao.insideSMSType);
         Global.Configuration.silentSMSType = (dao == null ? Status.SilentSMSType.TYPE_ONE : dao.silentSMSType);
         Global.Configuration.triggerInterval = (dao == null ? DEFAULT_TRIGGER_INTERVAL_SMS_MAX : dao.triggerInterval);
         Global.Configuration.filterInterval = (dao == null ? DEFAULT_SMS_FILTER_INTERVAL_MAX : dao.filterInterval);

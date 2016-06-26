@@ -1,5 +1,7 @@
 package com.example.jbtang.agi.device;
 
+import android.util.Log;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -12,13 +14,13 @@ import java.util.TreeMap;
  * Created by jbtang on 10/13/2015.
  */
 public class DeviceManager {
-    private Map<String, MonitorDevice> conDevices;
+    private List<MonitorDevice> conDevices;
     private List<MonitorDevice> allDevices;
     private static final DeviceManager instance = new DeviceManager();
 
     private DeviceManager() {
         allDevices = new ArrayList<>();
-        conDevices = new TreeMap<>();
+        conDevices = new ArrayList<>();
     }
 
     public static DeviceManager getInstance() {
@@ -26,19 +28,31 @@ public class DeviceManager {
     }
 
     public List<MonitorDevice> getDevices() {
-        return new ArrayList<>(conDevices.values());
+        return conDevices;
     }
 
     public MonitorDevice getDevice(String name) {
-        return conDevices.get(name);
+        for (MonitorDevice device : conDevices) {
+            if (device.getName().equals(name)) {
+                return device;
+            }
+        }
+        return null;
     }
 
     public void add(MonitorDevice device) {
-        conDevices.put(device.getName(), device);
+        if (DeviceManager.getInstance().getDevice(device.getName()) == null) {
+            conDevices.add(device);
+        }
     }
 
     public void remove(String name) {
-        conDevices.remove(name);
+        for (MonitorDevice device : conDevices) {
+            if (device.getName().equals(name)) {
+                conDevices.remove(device);
+                return;
+            }
+        }
     }
 
     public List<MonitorDevice> getAllDevices() {
@@ -46,20 +60,28 @@ public class DeviceManager {
     }
 
     public MonitorDevice getFromAll(String name) {
-        for(MonitorDevice device : allDevices) {
-            if(device.getName().equals(name))
+        for (MonitorDevice device : allDevices) {
+            if (device.getName().equals(name))
                 return device;
         }
         return null;
     }
 
     public void addToAll(MonitorDevice device) {
+        for (int i = 0; i < allDevices.size(); i++) {
+            if (allDevices.get(i).getName().equals(device.getName())) {
+                allDevices.set(i, device);
+                Log.e("Device","replace");
+                return;
+            }
+        }
+        Log.e("Device","not replace");
         allDevices.add(device);
     }
 
     public void removeFromAll(String name) {
-        for(MonitorDevice device : allDevices){
-            if(device.getName().equals(name)) {
+        for (MonitorDevice device : allDevices) {
+            if (device.getName().equals(name)) {
                 allDevices.remove(device);
                 return;
             }

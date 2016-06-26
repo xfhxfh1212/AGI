@@ -53,8 +53,7 @@ public class Status {
         TYPE_ONE,
         TYPE_TWO,
         TYPE_THREE,
-        TYPE_FOUR,
-        TYPE_FIVE
+        TYPE_FOUR
     }
     public enum SMSResult{
         OK,

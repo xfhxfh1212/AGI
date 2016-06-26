@@ -27,7 +27,7 @@ import ch.ethz.ssh2.StreamGobbler;
  */
 public class MonitorDevice extends Device {
 
-    public static final String DEVICE_NAME_PREFIX = "AGI";
+    public static final String DEVICE_NAME_PREFIX = "M";
     public static final int DATA_PORT = 3333;
     public static final int MESSAGE_PORT = 3334;
 

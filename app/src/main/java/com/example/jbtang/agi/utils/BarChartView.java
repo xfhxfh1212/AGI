@@ -82,18 +82,18 @@ public class BarChartView {
 
     protected void setChartSettings(XYMultipleSeriesRenderer renderer, String title, String xTitle, String yTitle,
                                     double xMin, double xMax, double yMin, double yMax, int axesColor, int labelsColor) {
-        renderer.setChartTitle(title);
-        renderer.setXTitle(xTitle);
-        renderer.setYTitle(yTitle);
+        renderer.setChartTitle(title);//设置柱图名称
+        renderer.setXTitle(xTitle);//设置X轴名称
+        renderer.setYTitle(yTitle);//设置Y轴名称
         renderer.setXAxisMin(xMin);
-        renderer.setXAxisMax(xMax);
+        renderer.setXAxisMax(xMax);//设置X轴的最大值
         renderer.setYAxisMin(yMin);
-        renderer.setYAxisMax(yMax);
+        renderer.setYAxisMax(yMax);//设置Y轴的最大值
         renderer.setAxesColor(axesColor);
         renderer.setLabelsColor(labelsColor);
-        renderer.setXLabels(0);
+        renderer.setXLabels(0);//设置X轴显示的刻度标签的个数
         renderer.setYLabels(10);
-        renderer.setLabelsTextSize(20);
+        renderer.setLabelsTextSize(20);// 设置轴标签文本大小
         renderer.setYLabelsAlign(Paint.Align.RIGHT);
         renderer.setXLabelsAlign(Paint.Align.CENTER);
         // renderer.setXLabelsColor(0xff000000);//设置X轴上的字体颜�?
@@ -108,16 +108,16 @@ public class BarChartView {
         if (null == renderer) {
             return;
         }
-        renderer.setBarWidth(23);
+        renderer.setBarWidth(30);//柱宽
         renderer.setBarSpacing(20);
-        renderer.setAxisTitleTextSize(16);
-        renderer.setChartTitleTextSize(20);
-        renderer.setLabelsTextSize(15);
-        renderer.setLegendTextSize(15);
+        renderer.setAxisTitleTextSize(16);// 设置坐标轴标题文本大小
+        renderer.setChartTitleTextSize(30);// 设置图表标题文本大小
+        renderer.setLabelsTextSize(15);// 设置轴标签文本大小
+        renderer.setLegendTextSize(15); // 设置图例文本大小
         for (int i = 0; i < colors.length; i++) {
             XYSeriesRenderer xyr = new XYSeriesRenderer();
             xyr.setChartValuesTextAlign(Paint.Align.RIGHT);
-            xyr.setChartValuesTextSize(15);
+            xyr.setChartValuesTextSize(20);//柱上文本大小
             xyr.setDisplayChartValues(true);
             xyr.setColor(colors[i]);
             renderer.addSeriesRenderer(xyr);

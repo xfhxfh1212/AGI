@@ -31,21 +31,22 @@
             android:layout_height="30dp"
             android:gravity="center_vertical"
             android:text="@string/page_interference_current_fail_times"
-            android:textSize="15sp" />
-
+            android:textSize="15sp"
+            android:visibility="invisible"/>
         <TextView
             android:id="@+id/interference_triggered_fail_count"
             android:layout_width="30dp"
             android:layout_height="30dp"
             android:gravity="center_vertical"
-            android:textSize="15sp" />
+            android:textSize="15sp"
+            android:visibility="invisible"/>
+
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="30dp"
             android:gravity="center_vertical"
             android:text="@string/page_interference_current_pci"
             android:textSize="15sp" />
-
         <TextView
             android:id="@+id/interference_current_pci"
             android:layout_width="50dp"
@@ -71,7 +72,8 @@
             android:layout_width="100dp"
             android:layout_height="30dp"
             android:gravity="center_vertical"
-            android:textSize="15sp" />
+            android:textSize="15sp"
+            android:layout_marginRight="40dp"/>
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="30dp"
@@ -125,7 +127,12 @@
         android:layout_height="wrap_content"
         android:gravity="center"
         android:orientation="horizontal">
-
+        <CheckBox
+            android:id="@+id/interference_environment_check"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="@string/page_interference_environment"
+            android:layout_marginRight="20dp"/>
         <Button
             android:id="@+id/interference_start_button"
             android:layout_width="wrap_content"

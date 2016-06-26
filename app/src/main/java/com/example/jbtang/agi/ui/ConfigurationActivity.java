@@ -73,6 +73,7 @@ public class ConfigurationActivity extends AppCompatActivity {
     private static final Pattern PHONE_NUMBER = Pattern.compile("^((13[0-9])|(15[^4,\\D])|(18[0-9]))\\d{8}$");
     public static final String ADD_DEVICE_FLAG = "addDeviceFlag";
     public static final String DELETE_DEVICE_FLAG = "deleteDeviceFlag";
+    public static final String CHANGE_DEVICE_FLAG = "changeDeviceFlag";
     public static final String REBOOT_DEVICE_FLAG = "rebootDeivceFlag";
 
     @Override
@@ -307,7 +308,7 @@ public class ConfigurationActivity extends AppCompatActivity {
             addDeviceToDB(device);
             addDeviceToListView(device);
 
-            sendMyBroadcast(ADD_DEVICE_FLAG,device);
+
         }
     }
 
@@ -322,9 +323,19 @@ public class ConfigurationActivity extends AppCompatActivity {
     }
 
     private void addDeviceToListView(MonitorDevice device) {
+        for(int i=0;i<devices.size();i++){
+            if(devices.get(i).getName().equals(device.getName())){
+                devices.set(i,device);
+                ListView listView = (ListView) findViewById(R.id.device_configuration_listView);
+                ((MyAdapter) listView.getAdapter()).notifyDataSetChanged();
+                sendMyBroadcast(CHANGE_DEVICE_FLAG,device);
+                return;
+            }
+        }
         devices.add(device);
         ListView listView = (ListView) findViewById(R.id.device_configuration_listView);
         ((MyAdapter) listView.getAdapter()).notifyDataSetChanged();
+        sendMyBroadcast(ADD_DEVICE_FLAG,device);
     }
 
     private boolean validateInput(String ip) {
@@ -441,7 +452,6 @@ public class ConfigurationActivity extends AppCompatActivity {
                 case TYPE_TWO: silentSMSType.check(R.id.system_configure_trigger_sms_silent_type_two);break;
                 case TYPE_THREE: silentSMSType.check(R.id.system_configure_trigger_sms_silent_type_three);break;
                 case TYPE_FOUR: silentSMSType.check(R.id.system_configure_trigger_sms_silent_type_four);break;
-                case TYPE_FIVE: silentSMSType.check(R.id.system_configure_trigger_sms_silent_type_five);break;
             }
         }
 
@@ -523,7 +533,6 @@ public class ConfigurationActivity extends AppCompatActivity {
             case R.id.system_configure_trigger_sms_silent_type_two : Global.Configuration.silentSMSType = Status.SilentSMSType.TYPE_TWO;break;
             case R.id.system_configure_trigger_sms_silent_type_three : Global.Configuration.silentSMSType = Status.SilentSMSType.TYPE_THREE;break;
             case R.id.system_configure_trigger_sms_silent_type_four : Global.Configuration.silentSMSType = Status.SilentSMSType.TYPE_FOUR;break;
-            case R.id.system_configure_trigger_sms_silent_type_five : Global.Configuration.silentSMSType = Status.SilentSMSType.TYPE_FIVE;break;
         }
         Global.Configuration.triggerInterval = Integer.parseInt(triggerInterval.getText().toString());
         Global.Configuration.filterInterval = Integer.parseInt(filterInterval.getText().toString());
@@ -550,7 +559,12 @@ public class ConfigurationActivity extends AppCompatActivity {
         } else if (flag.equals(DELETE_DEVICE_FLAG)) {
             intent.putExtra("name", device.getName());
             Log.d("changeDevice", "send deleteDevice,deviceName: " + device.getName());
-        } else if (flag.equals(REBOOT_DEVICE_FLAG)) {
+        } else if(flag.equals(CHANGE_DEVICE_FLAG)){
+            intent.putExtra("name", device.getName());
+            intent.putExtra("ip", device.getIP());
+            intent.putExtra("type", device.getType());
+        }
+        else if (flag.equals(REBOOT_DEVICE_FLAG)) {
             intent.putExtra("name", device.getName());
         }
         intent.setAction(MonitorApplication.BROAD_FROM_CONFIGURATION_ACTIVITY);   //设置你这个广播的action，只有和这个action一样的接受者才能接受者才能接收广播

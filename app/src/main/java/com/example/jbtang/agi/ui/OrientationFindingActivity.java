@@ -28,6 +28,8 @@ import android.widget.Toast;
 import com.example.jbtang.agi.R;
 import com.example.jbtang.agi.core.Global;
 import com.example.jbtang.agi.core.Status;
+import com.example.jbtang.agi.dao.OrientationInfos.OrientationInfoDAO;
+import com.example.jbtang.agi.dao.OrientationInfos.OrientationInfoManager;
 import com.example.jbtang.agi.device.DeviceManager;
 import com.example.jbtang.agi.device.MonitorDevice;
 import com.example.jbtang.agi.external.MonitorApplication;
@@ -40,6 +42,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 
 import io.fmaster.LTEServCellMessage;
@@ -80,6 +84,7 @@ public class OrientationFindingActivity extends AppCompatActivity {
     public static List<String> options =  Arrays.asList("", "", "", "", "", "");
     private BarChartView view;
     private TextToSpeech textToSpeech;
+    private OrientationInfoManager orientationInfoManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -95,11 +100,9 @@ public class OrientationFindingActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        super.onDestroy();
-    }
-
-    @Override
-    protected void onStop() {
+        orientationInfoManager.clear();
+        orientationInfoManager.add(orientationInfoList);
+        orientationInfoManager.closeDB();
         if(startToFind){
             OrientationFinding.getInstance().stop();
             startToFind = false;
@@ -108,7 +111,14 @@ public class OrientationFindingActivity extends AppCompatActivity {
         Global.Configuration.silenceCheckTimer = temSilenceTimer;
         unregisterReceiver(receiver);
         monitorHelper.unbindservice(OrientationFindingActivity.this);
+        textToSpeech.shutdown();
         Log.e("Orientation","orientation is onDestory");
+        super.onDestroy();
+    }
+
+    @Override
+    protected void onStop() {
+
         super.onStop();
     }
 
@@ -158,10 +168,15 @@ public class OrientationFindingActivity extends AppCompatActivity {
         pciNumThree = (TextView)findViewById(R.id.cell_status_bar_pci_num_three);
         pciNumFour = (TextView)findViewById(R.id.cell_status_bar_pci_num_four);
 
+        orientationInfoManager = new OrientationInfoManager(this);
+        orientationInfoList = getOrientationInfoList();
+
         resultListView = (ListView) findViewById(R.id.orientation_find_result_list);
         resultListView.setAdapter(new MyAdapter(this));
+        ((MyAdapter) resultListView.getAdapter()).notifyDataSetChanged();
 
         resultGraphLayout = (LinearLayout) findViewById(R.id.orientation_find_layout_result_graph);
+        refreshBarChart();
 
         targetPhoneNum.setText(Global.Configuration.targetPhoneNum);
         targetStmsiTextView.setText(OrientationFinding.getInstance().targetStmsi);
@@ -179,7 +194,7 @@ public class OrientationFindingActivity extends AppCompatActivity {
                 if(startToFind || DeviceManager.getInstance().getDevices().size() == 0 || Global.TARGET_STMSI == null)
                     return;
                 if(triggerTypeRG.getCheckedRadioButtonId() == R.id.orientation_find_trigger_continue) {
-                    Global.Configuration.triggerInterval = 8;
+                    Global.Configuration.triggerInterval = 4;//连续触发间隔
                     Global.Configuration.silenceCheckTimer = 0;
                 } else {
                     Global.Configuration.triggerInterval = temSMSInterval;
@@ -199,11 +214,21 @@ public class OrientationFindingActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 OrientationFinding.getInstance().stop();
-                startToFind = false;
-                try {
-                    Thread.sleep(1000);
-                } catch(Exception e){}
-                startButton.setEnabled(true);
+                if(startToFind) {
+                    startToFind = false;
+                    //Toast.makeText(OrientationFindingActivity.this,"设备停止中，请稍后！",Toast.LENGTH_LONG).show();
+                    new Timer().schedule(new TimerTask() {
+                        @Override
+                        public void run() {
+                            OrientationFindingActivity.this.runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    startButton.setEnabled(true);
+                                }
+                            });
+                        }
+                    }, 2000);
+                }
             }
         });
 
@@ -245,7 +270,20 @@ public class OrientationFindingActivity extends AppCompatActivity {
             }
         });
     }
-
+    private List<OrientationFinding.OrientationInfo> getOrientationInfoList(){
+        List<OrientationInfoDAO> orientationInfoDAOList = orientationInfoManager.listDB();
+        List<OrientationFinding.OrientationInfo> orientationInfoDBList = new ArrayList<>();
+        for(OrientationInfoDAO dao : orientationInfoDAOList) {
+            OrientationFinding.OrientationInfo orientationInfo = new OrientationFinding.OrientationInfo();
+            //orientationInfo.PUSCHRsrp = dao.pusch.equals(Double.NaN)? Double.NaN:Double.parseDouble(dao.pusch);
+            orientationInfo.PUSCHRsrp = Double.parseDouble(dao.pusch);
+            orientationInfo.pci = dao.pci;
+            orientationInfo.earfcn = dao.earfcn;
+            orientationInfo.timeStamp = dao.time;
+            orientationInfoDBList.add(orientationInfo);
+        }
+        return orientationInfoDBList;
+    }
     private void refresh(String type) {
         final String  temtype = type;
         runOnUiThread(new Runnable() {
@@ -346,10 +384,10 @@ public class OrientationFindingActivity extends AppCompatActivity {
         public void handleMessage(Message msg) {
             if(msg.what == 1 && msg.obj != null) {
                 OrientationFinding.OrientationInfo info = (OrientationFinding.OrientationInfo) msg.obj;
-                if(!Double.isNaN(info.PUSCHRsrp)) {
+                //if(!Double.isNaN(info.PUSCHRsrp)) {
                     mOuter.get().orientationInfoList.add(info);
                     mOuter.get().refresh("all");
-                }
+                //}
             }else if(msg.what == 2){
                 mOuter.get().refresh("");
             }
@@ -408,14 +446,10 @@ public class OrientationFindingActivity extends AppCompatActivity {
             } else {
                 holder = (ViewHolder) convertView.getTag();
             }
-            String currentDevice = OrientationFinding.getInstance().getCurrentDevice();
-            MonitorDevice device = DeviceManager.getInstance().getDevice(currentDevice);
             holder.num.setText(String.valueOf(position + 1));
             holder.pusch.setText(String.format("%.2f", orientationInfoList.get(position).PUSCHRsrp));
-            if(device != null && device.getCellInfo()!=null) {
-                holder.pci.setText(device.getCellInfo().pci + "");
-                holder.earfcn.setText(device.getCellInfo().earfcn + "");
-            }
+            holder.pci.setText(orientationInfoList.get(position).pci);
+            holder.earfcn.setText(orientationInfoList.get(position).earfcn);
             holder.time.setText(orientationInfoList.get(position).timeStamp);
             return convertView;
         }

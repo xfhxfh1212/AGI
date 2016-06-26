@@ -9,14 +9,14 @@
 
     <!-- control center page -->
     <string name="page_center_configure">配置</string>
-    <string name="page_center_start">开始侧向</string>
+    <string name="page_center_start">开始测向</string>
     <string name="title_activity_control_center">管理中心</string>
 
     <!-- main menu -->
     <string name="title_main_menu">主界面</string>
     <string name="title_main_menu_cell_monitor">守控小区</string>
     <string name="title_main_menu_find_STMSI">空码搜索</string>
-    <string name="title_main_menu_orientation">目标侧向</string>
+    <string name="title_main_menu_orientation">目标测向</string>
     <string name="title_main_menu_interference_detection">干扰探测</string>
     <string name="title_main_menu_configuration">参数配置</string>
     <string name="title_main_menu_cellPhone_info">本机信息</string>
@@ -132,12 +132,12 @@
     <!-- Orientation -->
     <string name="page_orientation_find_device_name">"设备名称"</string>
     <string name="page_orientation_find_stmsi">"STMSI"</string>
-    <string name="page_orientation_find_single">单次</string>
-    <string name="page_orientation_find_continue">连续</string>
+    <string name="page_orientation_find_single">远</string>
+    <string name="page_orientation_find_continue">近</string>
     <string name="page_orientation_find_start">"开始"</string>
     <string name="page_orientation_find_stop">"停止"</string>
     <string name="page_orientation_find_result_list_title_num">序号</string>
-    <string name="page_orientation_find_result_list_title_pusch">PUSCH</string>
+    <string name="page_orientation_find_result_list_title_pusch">能量</string>
     <string name="page_orientation_find_result_list_title_time">Time</string>
     <string name="page_orientation_find_result_list_title_pci">PCI</string>
     <string name="page_orientation_find_result_list_title_earfcn">EARFCN</string>
@@ -148,6 +148,7 @@
     <string name="page_interference_device_name">"设备名称"</string>
     <string name="page_interference_start">"开始"</string>
     <string name="page_interference_stop">"停止"</string>
+    <string name="page_interference_environment">"环境探测"</string>
     <string name="page_interference_target">目标号码:</string>
     <string name="page_interference_current_times">触发次数:</string>
     <string name="page_interference_current_fail_times">失败次数:</string>

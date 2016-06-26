@@ -28,6 +28,8 @@ import com.example.jbtang.agi.core.Global;
 import com.example.jbtang.agi.core.Status;
 import com.example.jbtang.agi.dao.cellinfos.CellInfoDAO;
 import com.example.jbtang.agi.dao.cellinfos.CellInfoDBManager;
+import com.example.jbtang.agi.dao.confirmed.ConfirmedDAO;
+import com.example.jbtang.agi.dao.confirmed.ConfirmedDBManager;
 import com.example.jbtang.agi.device.DeviceManager;
 import com.example.jbtang.agi.device.MonitorDevice;
 import com.example.jbtang.agi.external.MonitorApplication;
@@ -59,10 +61,10 @@ public class CellMonitorActivity extends AppCompatActivity {
     private CheckBox manualChoose;
     private ListView listView;
     private ListView confirmListView;
-    private List<CellInfo> updatingCellInfoList;
-    private List<CellInfo> cellInfoList;
-    private Set<CellInfo> monitorCellSet;
-    private List<CellInfo> monitorCellList;
+    private List<CellInfo> updatingCellInfoList;//更新时
+    private List<CellInfo> cellInfoList;//用于显示的邻区表
+    private Set<CellInfo> monitorCellSet;//守控小区-手动点击
+    private List<CellInfo> monitorCellList;//守控小区-用于显示
     private TextView deviceStatusText;
     private TextView deviceColorOne;
     private TextView deviceColorTwo;
@@ -71,6 +73,8 @@ public class CellMonitorActivity extends AppCompatActivity {
     private MonitorHelper monitorHelper;
     private CellInfoDBManager cellInfoDBManager;
     private List<CellInfo> cellInfoDBList;
+    private ConfirmedDBManager confirmedDBManager;
+    private List<CellInfo> confirmedDBList;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -84,8 +88,12 @@ public class CellMonitorActivity extends AppCompatActivity {
     @Override
     public void onDestroy() {
         cellInfoDBManager.clear();
-        cellInfoDBManager.add(cellInfoList);
+        cellInfoDBManager.add(cellInfoDBList);
         cellInfoDBManager.closeDB();
+
+        confirmedDBManager.clear();
+        confirmedDBManager.add(monitorCellList);
+        confirmedDBManager.closeDB();
         unregisterReceiver(receiver);
         //unbindService(connection);
         //stopService(startIntent);
@@ -129,6 +137,8 @@ public class CellMonitorActivity extends AppCompatActivity {
 
         cellInfoDBManager = new CellInfoDBManager(this);
         cellInfoDBList = getCellInfoList();
+        confirmedDBManager = new ConfirmedDBManager(this);
+        confirmedDBList = getConfirmedList();
 
         cellInfoList = new ArrayList<>();
         updatingCellInfoList = new ArrayList<>();
@@ -142,7 +152,8 @@ public class CellMonitorActivity extends AppCompatActivity {
         MyConfirmAdapter confirmAdapter = new MyConfirmAdapter(this);
         confirmListView.setAdapter(confirmAdapter);
 
-        monitorCellSet = new HashSet<>();
+        monitorCellSet = new HashSet<>(confirmedDBList);
+
         manualChoose.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -183,6 +194,20 @@ public class CellMonitorActivity extends AppCompatActivity {
         }
         return cellInfoDBList;
     }
+    private List<CellInfo> getConfirmedList(){
+        List<ConfirmedDAO> confirmedDAOList = confirmedDBManager.listDB();
+        List<CellInfo> confirmedDBList = new ArrayList<>();
+        for(ConfirmedDAO dao : confirmedDAOList){
+            CellInfo cellInfo = new CellInfo();
+            cellInfo.earfcn = dao.earfcn;
+            cellInfo.pci = dao.pci;
+            cellInfo.tai = dao.tai;
+            cellInfo.ecgi = dao.ecgi;
+            cellInfo.isChecked = true;
+            confirmedDBList.add(cellInfo);
+        }
+        return confirmedDBList;
+    }
 //    private MonitorService mBoundService;
 //
 //    private ServiceConnection connection = new ServiceConnection() {
@@ -210,11 +235,11 @@ public class CellMonitorActivity extends AppCompatActivity {
             public void run() {
                 monitorCellList = new ArrayList<>();
                 cellInfoList = new ArrayList<>(updatingCellInfoList);
-                for (CellInfo info : cellInfoList) {
-                    if (info.isChecked) {
-                        monitorCellList.add(info);
-                    }
-                }
+//                for (CellInfo info : cellInfoList) {
+//                    if (info.isChecked) {
+//                        monitorCellList.add(info);
+//                    }
+//                }
                 for(CellInfo info : monitorCellSet){
                     if(!monitorCellList.contains(info)){
                         monitorCellList.add(info);
@@ -650,7 +675,7 @@ public class CellMonitorActivity extends AppCompatActivity {
         public TextView earfcn;
         public TextView pci;
         public TextView tai;
-        public TextView board;
+        public CheckBox choose;
     }
 
     public class MyConfirmAdapter extends BaseAdapter {
@@ -679,7 +704,7 @@ public class CellMonitorActivity extends AppCompatActivity {
             return 0;
         }
 
-        public View getView(int position, View convertView, ViewGroup parent) {
+        public View getView(final int position, View convertView, ViewGroup parent) {
             final ConfirmViewHolder holder;
             if (convertView == null) {
                 convertView = mInflater.inflate(R.layout.cell_monitor_confirm_list_item, null);
@@ -687,7 +712,7 @@ public class CellMonitorActivity extends AppCompatActivity {
                 holder.earfcn = (TextView) convertView.findViewById(R.id.cell_monitor_confirm_item_earfcn);
                 holder.pci = (TextView) convertView.findViewById(R.id.cell_monitor_confirm_item_pci);
                 holder.tai = (TextView) convertView.findViewById(R.id.cell_monitor_confirm_item_tai);
-                holder.board = (TextView) convertView.findViewById(R.id.cell_monitor_confirm_item_board);
+                holder.choose = (CheckBox) convertView.findViewById(R.id.cell_monitor_confirm_item_choose);
                 convertView.setTag(holder);
             } else {
                 holder = (ConfirmViewHolder) convertView.getTag();
@@ -714,6 +739,20 @@ public class CellMonitorActivity extends AppCompatActivity {
                 holder.tai.setText("" + tai);
             }
 
+            holder.choose.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                @Override
+                public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                    CellInfo info = monitorCellList.get(position);
+                    info.isChecked = isChecked;
+
+                    if (isChecked) {
+                        monitorCellSet.add(info);
+                    } else {
+                        monitorCellSet.remove(info);
+                    }
+                }
+            });
+            holder.choose.setChecked(true);
             return convertView;
         }
     }

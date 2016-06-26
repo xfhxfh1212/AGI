@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
@@ -19,6 +20,7 @@ import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ListView;
@@ -28,6 +30,8 @@ import android.widget.Toast;
 import com.example.jbtang.agi.R;
 import com.example.jbtang.agi.core.Global;
 import com.example.jbtang.agi.core.Status;
+import com.example.jbtang.agi.dao.FindSTMSIInfos.FindeSTMSIInfoDAO;
+import com.example.jbtang.agi.dao.FindSTMSIInfos.FindSTMSIInfoManager;
 import com.example.jbtang.agi.device.DeviceManager;
 import com.example.jbtang.agi.device.MonitorDevice;
 import com.example.jbtang.agi.external.MonitorApplication;
@@ -72,8 +76,14 @@ public class FindSTMSIActivity extends AppCompatActivity {
     private TextView pciNumTwo;
     private TextView pciNumThree;
     private TextView pciNumFour;
+    private CheckBox filterCheckBox;
     private MonitorHelper monitorHelper;
 
+    private FindSTMSIInfoManager findSTMSIInfoManager;
+    private SharedPreferences sharedPreferences;
+    private static final String CONFIG_DERECTORY = "findstmsi";
+    private static final String FILTERCHECKBOX = "filterCheckBox";
+    private static final String TARGETSTMSI = "targetSTMSI";
     private TextView sumCountText;
     private TextView nullCountText;
 
@@ -88,18 +98,30 @@ public class FindSTMSIActivity extends AppCompatActivity {
     }
     @Override
     protected void onDestroy() {
+        findSTMSIInfoManager.clear();
+        findSTMSIInfoManager.add(countSortedInfoList);
+        findSTMSIInfoManager.closeDB();
 
+        if(startToFind) {
+            FindSTMSI.getInstance().stop();
+            startToFind = false;
+        }
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        if (filterCheckBox.isChecked()) {
+            editor.putString(FILTERCHECKBOX, "true");
+        } else {
+            editor.putString(FILTERCHECKBOX, "false");
+        }
+        editor.putString(TARGETSTMSI,targetSTMSI.getText().toString());
+        editor.commit();
+        unregisterReceiver(receiver);
+        monitorHelper.unbindservice(FindSTMSIActivity.this);
         super.onDestroy();
     }
 
     @Override
     protected void onStop() {
-        if(startToFind) {
-            FindSTMSI.getInstance().stop();
-            startToFind = false;
-        }
-        unregisterReceiver(receiver);
-        monitorHelper.unbindservice(FindSTMSIActivity.this);
+
         super.onStop();
     }
 
@@ -132,7 +154,8 @@ public class FindSTMSIActivity extends AppCompatActivity {
         LinearLayout cellStatusBar = (LinearLayout) inflater.inflate(R.layout.cell_status_bar,null).findViewById(R.id.cell_status_bar_linearlayout);
         linearLayout.addView(cellStatusBar);
 
-        countSortedInfoList = new ArrayList<>();
+        findSTMSIInfoManager = new FindSTMSIInfoManager(this);
+        countSortedInfoList = getStmsiInfoList();
         startToFind = false;
 
         startButton = (Button) findViewById(R.id.find_stmsi_start_button);
@@ -155,15 +178,27 @@ public class FindSTMSIActivity extends AppCompatActivity {
         pciNumFour = (TextView)findViewById(R.id.cell_status_bar_pci_num_four);
 
         targetPhone.setText(Global.Configuration.targetPhoneNum);
-        targetSTMSI.setText(Global.TARGET_STMSI);
+
 
         sumCountText = (TextView) findViewById(R.id.find_stmsi_sum_count_text);
         nullCountText = (TextView) findViewById(R.id.find_stmsi_null_count_text);
-
+        filterCheckBox = (CheckBox) findViewById(R.id.find_stmsi_filter_checkbox);
         count = (ListView) findViewById(R.id.find_stmsi_count_listView);
+
+        sharedPreferences =  getSharedPreferences(CONFIG_DERECTORY, Context.MODE_PRIVATE);
+        if(sharedPreferences.getString(FILTERCHECKBOX,"false").equals("true")){
+            filterCheckBox.setChecked(true);
+        } else {
+            filterCheckBox.setChecked(false);
+        }
+        if(Global.TARGET_STMSI != null){
+            targetSTMSI.setText(Global.TARGET_STMSI);
+        } else {
+            targetSTMSI.setText(sharedPreferences.getString(TARGETSTMSI,""));
+        }
         CountAdapter countAdapter = new CountAdapter(this);
         count.setAdapter(countAdapter);
-
+        ((CountAdapter) count.getAdapter()).notifyDataSetChanged();
         count.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
@@ -195,10 +230,17 @@ public class FindSTMSIActivity extends AppCompatActivity {
             public void onClick(View v) {
                 FindSTMSI.getInstance().stop();
                 startToFind = false;
-                try {
-                    Thread.sleep(1000);
-                } catch(Exception e){}
-                startButton.setEnabled(true);
+                new Timer().schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        FindSTMSIActivity.this.runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                startButton.setEnabled(true);
+                            }
+                        });
+                    }
+                }, 2000);
             }
         });
 
@@ -219,8 +261,23 @@ public class FindSTMSIActivity extends AppCompatActivity {
         registerReceiver(receiver, filter);
         monitorHelper = new MonitorHelper();
         monitorHelper.bindService(FindSTMSIActivity.this);
-    }
 
+
+    }
+    private List<FindSTMSI.CountSortedInfo> getStmsiInfoList(){
+        List<FindeSTMSIInfoDAO> findeSTMSIInfoDAOList = findSTMSIInfoManager.listDB();
+        List<FindSTMSI.CountSortedInfo> stmsiInfoDBList = new ArrayList<>();
+        for(FindeSTMSIInfoDAO dao : findeSTMSIInfoDAOList) {
+            FindSTMSI.CountSortedInfo countSortedInfo = new FindSTMSI.CountSortedInfo();
+            countSortedInfo.stmsi = dao.stmsi;
+            countSortedInfo.count = dao.count;
+            countSortedInfo.time = dao.time;
+            countSortedInfo.pci = dao.pci;
+            countSortedInfo.earfcn = dao.earfcn;
+            stmsiInfoDBList.add(countSortedInfo);
+        }
+        return stmsiInfoDBList;
+    }
     private void refresh() {
         runOnUiThread(new Runnable() {
             @Override

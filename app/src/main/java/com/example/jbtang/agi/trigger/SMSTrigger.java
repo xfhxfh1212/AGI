@@ -10,6 +10,7 @@ import android.net.Uri;
 import android.telephony.SmsManager;
 import android.telephony.TelephonyManager;
 import android.util.Log;
+import android.widget.RadioGroup;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -20,6 +21,10 @@ import com.example.jbtang.agi.core.Global;
 import com.example.jbtang.agi.core.Status;
 import com.example.jbtang.agi.device.DeviceManager;
 import com.example.jbtang.agi.device.MonitorDevice;
+import com.example.jbtang.agi.service.OrientationFinding;
+import com.example.jbtang.agi.ui.FindSTMSIActivity;
+import com.example.jbtang.agi.ui.InterferenceActivity;
+import com.example.jbtang.agi.ui.OrientationFindingActivity;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -59,6 +64,8 @@ public class SMSTrigger implements Trigger {
     private Timer timer;
     private boolean send;
     private boolean deliver;
+    private int orientationType;
+
     @Override
     public void start(Activity activity, Status.Service service) {
         if (!start) {
@@ -93,9 +100,9 @@ public class SMSTrigger implements Trigger {
             if (task != null && future != null) {
                 future.cancel(true);
             }
-            if(timer != null)
+            if (timer != null)
                 timer.cancel();
-            if(Global.Configuration.type == Status.TriggerType.SMS && Global.Configuration.smsType == Status.TriggerSMSType.INSIDE) {
+            if (Global.Configuration.type == Status.TriggerType.SMS && Global.Configuration.smsType == Status.TriggerSMSType.INSIDE) {
                 currentActivity.unregisterReceiver(sendReceive);
                 currentActivity.unregisterReceiver(deliverReceive);
             }
@@ -108,6 +115,7 @@ public class SMSTrigger implements Trigger {
 
     class FindSTMSITask implements Runnable {
         private boolean startMonitor;
+
         public FindSTMSITask() {
             smsCount = 0;
             smsFailCount = 0;
@@ -121,12 +129,12 @@ public class SMSTrigger implements Trigger {
 //            if (smsCount == Global.Configuration.triggerTotalCount) {
 //                future.cancel(true);
 //            }
-            if(!startMonitor) {
+            if (!startMonitor) {
                 for (MonitorDevice device : DeviceManager.getInstance().getDevices()) {
                     device.startMonitor(Status.Service.FINDSTMIS);
                     device.setWorkingStatus(Status.DeviceWorkingStatus.ABNORMAL);
                 }
-                if(Global.Configuration.type == Status.TriggerType.SMS && Global.Configuration.smsType == Status.TriggerSMSType.INSIDE) {
+                if (Global.Configuration.type == Status.TriggerType.SMS && Global.Configuration.smsType == Status.TriggerSMSType.INSIDE) {
                     String SENT = "sms_sent";
                     String DELIVERED = "sms_delivered";
                     currentActivity.registerReceiver(sendReceive, new IntentFilter(SENT));
@@ -134,24 +142,25 @@ public class SMSTrigger implements Trigger {
                 }
                 startMonitor = true;
             }
-            for(MonitorDevice device : DeviceManager.getInstance().getDevices()) {
-                if(device.isConnected()) {
-
-                }
-            }
-            if(Global.Configuration.type == Status.TriggerType.SMS && Global.Configuration.smsType == Status.TriggerSMSType.INSIDE) {
+//            for (MonitorDevice device : DeviceManager.getInstance().getDevices()) {
+//                if (device.isConnected()) {
+//
+//                }
+//            }
+            if (Global.Configuration.type == Status.TriggerType.SMS && Global.Configuration.smsType == Status.TriggerSMSType.INSIDE) {
                 send();
-            } else if (Global.Configuration.type == Status.TriggerType.PHONE) {
+            } else if (Global.Configuration.type == Status.TriggerType.PHONE && Global.Configuration.smsType == Status.TriggerSMSType.INSIDE) {
                 call();
             }
             smsCount++;
-            freshSmsCount();
             Global.sendTime = new Date();
+            freshSmsCount();
         }
     }
 
-    class InterferenceTask implements Runnable{
+    class InterferenceTask implements Runnable {
         private boolean startMonitor;
+
         public InterferenceTask() {
             smsCount = 0;
             smsFailCount = 0;
@@ -165,14 +174,14 @@ public class SMSTrigger implements Trigger {
 //            if (smsCount == Global.Configuration.triggerTotalCount) {
 //                future.cancel(true);
 //            }
-            if(!startMonitor) {
-                Log.e(TAG,DeviceManager.getInstance().getDevices().size()+"");
+            if (!startMonitor) {
+                Log.e(TAG, DeviceManager.getInstance().getDevices().size() + "");
                 for (MonitorDevice device : DeviceManager.getInstance().getDevices()) {
-                    Log.e(TAG,device.getName());
+                    Log.e(TAG, device.getName());
                     device.startMonitor(Status.Service.FINDSTMIS);
                     device.setWorkingStatus(Status.DeviceWorkingStatus.ABNORMAL);
                 }
-                if(Global.Configuration.type == Status.TriggerType.SMS && Global.Configuration.smsType == Status.TriggerSMSType.INSIDE) {
+                if (Global.Configuration.type == Status.TriggerType.SMS && Global.Configuration.smsType == Status.TriggerSMSType.INSIDE) {
                     String SENT = "sms_sent";
                     String DELIVERED = "sms_delivered";
                     currentActivity.registerReceiver(sendReceive, new IntentFilter(SENT));
@@ -180,8 +189,11 @@ public class SMSTrigger implements Trigger {
                 }
                 startMonitor = true;
             }
-            if(Global.Configuration.type == Status.TriggerType.SMS && Global.Configuration.smsType == Status.TriggerSMSType.INSIDE)
+            if (Global.Configuration.type == Status.TriggerType.SMS && Global.Configuration.smsType == Status.TriggerSMSType.INSIDE) {
                 send();
+            } else if (Global.Configuration.type == Status.TriggerType.PHONE && Global.Configuration.smsType == Status.TriggerSMSType.INSIDE) {
+                call();
+            }
             smsCount++;
             freshSmsCount();
         }
@@ -191,7 +203,12 @@ public class SMSTrigger implements Trigger {
         private boolean startMonitor;
 
         public OrientationFindingTask() {
-            smsCount = 0;
+            orientationType = ((RadioGroup) currentActivity.findViewById(R.id.orientation_find_trigger_type)).getCheckedRadioButtonId();
+            if (orientationType == R.id.orientation_find_trigger_continue) {
+                smsCount = -3;
+            } else {
+                smsCount = 0;
+            }
             smsFailCount = 0;
             countTextView = (TextView) currentActivity.findViewById(R.id.orientation_triggered_count);
             failCountTextView = (TextView) currentActivity.findViewById(R.id.orientation_triggered_fail_count);
@@ -205,7 +222,7 @@ public class SMSTrigger implements Trigger {
                     device.startMonitor(Status.Service.ORIENTATION);
                     device.setWorkingStatus(Status.DeviceWorkingStatus.ABNORMAL);
                 }
-                if(Global.Configuration.type == Status.TriggerType.SMS && Global.Configuration.smsType == Status.TriggerSMSType.INSIDE) {
+                if (Global.Configuration.type == Status.TriggerType.SMS && Global.Configuration.smsType == Status.TriggerSMSType.INSIDE) {
                     String SENT = "sms_sent";
                     String DELIVERED = "sms_delivered";
                     currentActivity.registerReceiver(sendReceive, new IntentFilter(SENT));
@@ -213,9 +230,12 @@ public class SMSTrigger implements Trigger {
                 }
                 startMonitor = true;
             }
-            if(Global.Configuration.type == Status.TriggerType.SMS && Global.Configuration.smsType == Status.TriggerSMSType.INSIDE)
-                send();
 
+            if (Global.Configuration.type == Status.TriggerType.SMS && Global.Configuration.smsType == Status.TriggerSMSType.INSIDE) {
+                send();
+            } else if (Global.Configuration.type == Status.TriggerType.PHONE && Global.Configuration.smsType == Status.TriggerSMSType.INSIDE) {
+                call();
+            }
             smsCount++;
             freshSmsCount();
         }
@@ -226,13 +246,7 @@ public class SMSTrigger implements Trigger {
         String DELIVERED = "sms_delivered";
         PendingIntent sentPI = PendingIntent.getBroadcast(currentActivity, 0, new Intent(SENT), 0);
         PendingIntent deliveredPI = PendingIntent.getBroadcast(currentActivity, 0, new Intent(DELIVERED), 0);
-        if(smsCount == 0) {
-            try{
-                Thread.sleep(3000);
-            }catch (Exception e){
-
-            }
-
+        if (smsCount == 0) {
             String phone = Global.Configuration.targetPhoneNum;
             String smsCenter = Global.Configuration.smsCenter;
             String text = "hello";
@@ -240,11 +254,11 @@ public class SMSTrigger implements Trigger {
             String DCSFormat = "";//Global.Configuration.insideSMSType == Status.InsideSMSType.NORMAL ? "英文" : "定位短信";//DCS
             String SendFormat = "";//PDU-Type
             String smsType = "";
-            if(Global.Configuration.insideSMSType == Status.InsideSMSType.NORMAL) {
+            if (Global.Configuration.insideSMSType == Status.InsideSMSType.NORMAL) {
                 DCSFormat = "英文";
                 smsType = "正常短信";
             } else {
-                switch(Global.Configuration.silentSMSType) {
+                switch (Global.Configuration.silentSMSType) {
                     case TYPE_ONE:
                         smsType = "定位短信";
                         DCSFormat = "英文";
@@ -259,10 +273,6 @@ public class SMSTrigger implements Trigger {
                         break;//TP-PID=0x00;TP-DCS=0xC0;
                     case TYPE_FOUR:
                         smsType = "正常短信";
-                        DCSFormat = "40";
-                        break;//TP-PID=0x00;TP-DCS=0x40;WAP PUSH
-                    case TYPE_FIVE:
-                        smsType = "正常短信";
                         DCSFormat = "10";
                         break;//TP-PID=0x00;TP-DCS=0x10;FLASH SMS
                     default:
@@ -270,8 +280,18 @@ public class SMSTrigger implements Trigger {
                 }
             }
             int PDUNums = 0;
-            String SmsPDU = smsHelper.sms_Send_PDU_Encoder(phone, smsCenter,text, DCSFormat, SendFormat, smsType, PDUNums);
+            String SmsPDU = smsHelper.sms_Send_PDU_Encoder(phone, smsCenter, text, DCSFormat, SendFormat, smsType, PDUNums);
             finalText = RAWSMS_MESSAGE_PREFIX + SmsPDU;
+
+            if (currentActivity.getClass() == FindSTMSIActivity.class ||
+                    (currentActivity.getClass() == OrientationFindingActivity.class && orientationType == R.id.orientation_find_trigger_single)) {
+                try {
+                    Thread.sleep(6000);
+                } catch (Exception e) {
+                }
+            }
+        } else if (smsCount < 0) {
+            return;
         }
 
         Log.e("SMS", finalText);
@@ -281,15 +301,16 @@ public class SMSTrigger implements Trigger {
         send = false;
         deliver = false;
         timer = new Timer();
-        timer.schedule(new MyTimerTask(),10000);
+        timer.schedule(new MyTimerTask(), 10000);
     }
-    class MyTimerTask extends TimerTask{
+
+    class MyTimerTask extends TimerTask {
 
         @Override
         public void run() {
-            Log.e("====>","send:"+send+"deliver:"+deliver);
-            if(send == true && deliver == false) {
-                Log.e("====>","Toast");
+            Log.e("====>", "send:" + send + "deliver:" + deliver);
+            if (send == true && deliver == false) {
+                Log.e("====>", "Toast");
                 currentActivity.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
@@ -299,6 +320,7 @@ public class SMSTrigger implements Trigger {
             }
         }
     }
+
     private final BroadcastReceiver sendReceive = new BroadcastReceiver() {
 
         @Override
@@ -323,7 +345,7 @@ public class SMSTrigger implements Trigger {
 //                    break;
                 default:
                     Log.i("====>", "RESULT_FAIL");
-                    Toast.makeText(context,"发送失败",Toast.LENGTH_SHORT).show();
+                    Toast.makeText(context, "发送失败", Toast.LENGTH_SHORT).show();
                     break;
             }
             freshSmsCount();
@@ -335,9 +357,9 @@ public class SMSTrigger implements Trigger {
             switch (getResultCode()) {
                 case Activity.RESULT_OK:
                     deliver = true;
-                    if(timer != null)
+                    if (timer != null)
                         timer.cancel();
-                    Toast.makeText(context,"目标接收成功！",Toast.LENGTH_SHORT).show();
+                    Toast.makeText(context, "目标接收成功！", Toast.LENGTH_SHORT).show();
                     Log.e("====>", "RECEIVE_OK");
                     break;
 //                case Activity.RESULT_CANCELED:
@@ -346,22 +368,27 @@ public class SMSTrigger implements Trigger {
 //                    Log.e("=====>", "RESULT_CANCELED");
 //                    break;
                 default:
-                    Toast.makeText(context,"目标接收失败！",Toast.LENGTH_SHORT).show();
+                    Toast.makeText(context, "目标接收失败！", Toast.LENGTH_SHORT).show();
                     Log.e("====>", "RECEIVE_FAIL");
                     break;
             }
         }
     };
 
-    private void freshSmsCount(){
+    private void freshSmsCount() {
         currentActivity.runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                countTextView.setText(String.valueOf(smsCount));
+                if (smsCount < 0) {
+                    countTextView.setText("0");
+                } else {
+                    countTextView.setText(String.valueOf(smsCount));
+                }
                 failCountTextView.setText(String.valueOf(smsFailCount));
             }
         });
     }
+
     private void call() {
         try {
             final TelephonyManager tm = (TelephonyManager) currentActivity.getSystemService(Context.TELEPHONY_SERVICE);
@@ -372,14 +399,15 @@ public class SMSTrigger implements Trigger {
                 currentActivity.startActivity(intent);
             }
             //if (state == TelephonyManager.CALL_STATE_OFFHOOK) {
-                Thread.sleep(1000);
-                boolean endCall = iPhoney.endCall();
-                System.out.println("是否成功挂断："+endCall);
+            Thread.sleep(1000);
+            boolean endCall = iPhoney.endCall();
+            System.out.println("是否成功挂断：" + endCall);
             //}
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
+
     private static ITelephony getITelephony(Context context) {
         TelephonyManager mTelephonyManager = (TelephonyManager) context
                 .getSystemService(Context.TELEPHONY_SERVICE);
@@ -394,7 +422,7 @@ public class SMSTrigger implements Trigger {
         } catch (NoSuchMethodException e) {
             e.printStackTrace();
         }
-        ITelephony iTelephony=null;
+        ITelephony iTelephony = null;
         try {
             iTelephony = (ITelephony) getITelephonyMethod.invoke(
                     mTelephonyManager, (Object[]) null); // 获取实例

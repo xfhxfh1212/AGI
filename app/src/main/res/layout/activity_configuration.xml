@@ -134,17 +134,17 @@
             android:gravity="center"
             android:orientation="horizontal">
             <RadioButton
-                android:id="@+id/system_configure_trigger_sms_inside_normal"
-                android:layout_width="wrap_content"
-                android:layout_height="40dp"
-                android:layout_marginLeft="10dp"
-                android:text="@string/page_system_configure_trigger_SMS_inside_normal"/>
-            <RadioButton
                 android:id="@+id/system_configure_trigger_sms_inside_silent"
                 android:layout_width="wrap_content"
                 android:layout_height="40dp"
                 android:layout_marginLeft="10dp"
                 android:text="@string/page_system_configure_trigger_SMS_inside_silent"/>
+            <RadioButton
+                android:id="@+id/system_configure_trigger_sms_inside_normal"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:layout_marginLeft="10dp"
+                android:text="@string/page_system_configure_trigger_SMS_inside_normal"/>
         </RadioGroup>
     </LinearLayout>
     <LinearLayout
@@ -187,12 +187,6 @@
                 android:layout_height="40dp"
                 android:layout_marginLeft="10dp"
                 android:text="@string/page_system_configure_trigger_SMS_silent_type_four"/>
-            <RadioButton
-                android:id="@+id/system_configure_trigger_sms_silent_type_five"
-                android:layout_width="wrap_content"
-                android:layout_height="40dp"
-                android:layout_marginLeft="10dp"
-                android:text="@string/page_system_configure_trigger_SMS_silent_type_five"/>
         </RadioGroup>
     </LinearLayout>
     <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
