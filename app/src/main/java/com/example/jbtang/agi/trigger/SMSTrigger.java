@@ -42,6 +42,8 @@ public class SMSTrigger implements Trigger {
     private static final String RAWSMS_MESSAGE_PREFIX = "sendSmsByRawPDU";
     private static final SMSTrigger instance = new SMSTrigger();
 
+    private static final int RECEIVE_TAG = 15000;//等待短信发送回执时间,用来判断目标是否关机
+    private static final int FIRST_SEND_DELAY = 6000;//第一次短信发送延迟时间
     private boolean start;
 
     private SMSTrigger() {
@@ -268,13 +270,13 @@ public class SMSTrigger implements Trigger {
                         DCSFormat = "C0";
                         break;//TP-PID=0x40;TP-DCS=0xC0;
                     case TYPE_THREE:
-                        smsType = "正常短信";
-                        DCSFormat = "C0";
-                        break;//TP-PID=0x00;TP-DCS=0xC0;
+                        smsType = "push";
+                        DCSFormat = "F6";
+                        break;//TP-PID=0x7F;TP-DCS=0xF6;
                     case TYPE_FOUR:
                         smsType = "正常短信";
-                        DCSFormat = "10";
-                        break;//TP-PID=0x00;TP-DCS=0x10;FLASH SMS
+                        DCSFormat = "F6";
+                        break;//TP-PID=0x00;TP-DCS=0xF6;FLASH SMS
                     default:
                         break;
                 }
@@ -286,7 +288,7 @@ public class SMSTrigger implements Trigger {
             if (currentActivity.getClass() == FindSTMSIActivity.class ||
                     (currentActivity.getClass() == OrientationFindingActivity.class && orientationType == R.id.orientation_find_trigger_single)) {
                 try {
-                    Thread.sleep(6000);
+                    Thread.sleep(FIRST_SEND_DELAY);
                 } catch (Exception e) {
                 }
             }
@@ -294,22 +296,26 @@ public class SMSTrigger implements Trigger {
             return;
         }
 
-        Log.e("SMS", finalText);
+        Log.e("====>", finalText);
 
         SmsManager smsm = SmsManager.getDefault();
         smsm.sendTextMessage(Global.Configuration.targetPhoneNum, null, finalText, sentPI, deliveredPI);
         send = false;
         deliver = false;
-        timer = new Timer();
-        timer.schedule(new MyTimerTask(), 10000);
+        if(currentActivity.getClass() == OrientationFindingActivity.class && orientationType == R.id.orientation_find_trigger_continue){
+            //timer.schedule(new MyTimerTask(),4900);
+        } else {
+            timer = new Timer();
+            timer.schedule(new MyTimerTask(), RECEIVE_TAG);
+        }
     }
 
     class MyTimerTask extends TimerTask {
 
         @Override
         public void run() {
-            Log.e("====>", "send:" + send + "deliver:" + deliver);
-            if (send == true && deliver == false) {
+            Log.e("====>", "send:" + send + " deliver:" + deliver);
+            if (send && !deliver) {
                 Log.e("====>", "Toast");
                 currentActivity.runOnUiThread(new Runnable() {
                     @Override
@@ -328,7 +334,7 @@ public class SMSTrigger implements Trigger {
             switch (getResultCode()) {
                 case Activity.RESULT_OK:
                     send = true;
-                    Log.i("====>", "Activity.RESULT_OK");
+                    Log.i("====>", "SEND_OK");
                     //Toast.makeText(context,"发送成功",Toast.LENGTH_SHORT).show();
                     break;
 //                case SmsManager.RESULT_ERROR_GENERIC_FAILURE:
@@ -344,7 +350,7 @@ public class SMSTrigger implements Trigger {
 //                    Log.i("====>", "RESULT_ERROR_RADIO_OFF");
 //                    break;
                 default:
-                    Log.i("====>", "RESULT_FAIL");
+                    Log.i("====>", "SEND_FAIL");
                     Toast.makeText(context, "发送失败", Toast.LENGTH_SHORT).show();
                     break;
             }

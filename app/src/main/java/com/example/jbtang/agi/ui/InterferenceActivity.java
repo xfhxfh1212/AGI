@@ -84,6 +84,7 @@ public class InterferenceActivity extends AppCompatActivity {
     private SharedPreferences sharedPreferences;
     private final static String CONFIG_DERECTORY = "interference";
     private final static String ENVIRONMENTCHEKC = "isEnvironment";
+    private final static String FILTER_COUNT = "filtercount";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -110,6 +111,7 @@ public class InterferenceActivity extends AppCompatActivity {
         } else {
             editor.putString(ENVIRONMENTCHEKC, "false");
         }
+        editor.putInt(FILTER_COUNT,Integer.parseInt(filterCount.getText().toString()));
         editor.commit();
         unregisterReceiver(receiver);
         monitorHelper.unbindservice(InterferenceActivity.this);
@@ -179,6 +181,7 @@ public class InterferenceActivity extends AppCompatActivity {
         } else {
             environmentCheck.setChecked(false);
         }
+        filterCount.setText(sharedPreferences.getInt(FILTER_COUNT,10)+"");
 
         targetPhone.setText(Global.Configuration.targetPhoneNum);
 
