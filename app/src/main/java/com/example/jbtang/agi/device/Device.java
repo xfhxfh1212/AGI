@@ -51,6 +51,15 @@ public class Device {
     private static final int REBOOT_PORT = 22;
     private static final String REBOOT_CMD = "reboot";
 
+    public boolean isStartAgain() {
+        return startAgain;
+    }
+
+    public void setStartAgain(boolean startAgain) {
+        this.startAgain = startAgain;
+    }
+
+    private boolean startAgain;
     //private int index;
 
 //    public int getIndex() {
@@ -95,6 +104,7 @@ public class Device {
         this.messagePort = messagePort;
         this.status = Status.DeviceStatus.DISCONNECTED;
         this.checkStatusStart = false;
+        this.startAgain = false;
         //this.index = 0;
     }
 
@@ -347,6 +357,7 @@ public class Device {
         closeDataInputStream();
         closeTCPClient();
         status = Status.DeviceStatus.DISCONNECTED;
+        startAgain = false;
     }
 
     /*private void closeReceiveThread() {

@@ -207,7 +207,7 @@ public class SMSTrigger implements Trigger {
         public OrientationFindingTask() {
             orientationType = ((RadioGroup) currentActivity.findViewById(R.id.orientation_find_trigger_type)).getCheckedRadioButtonId();
             if (orientationType == R.id.orientation_find_trigger_continue) {
-                smsCount = -3;
+                smsCount = -7;
             } else {
                 smsCount = 0;
             }

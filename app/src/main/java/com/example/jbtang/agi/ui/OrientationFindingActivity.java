@@ -40,6 +40,7 @@ import com.example.jbtang.agi.utils.BarChartView;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Timer;
@@ -305,17 +306,25 @@ public class OrientationFindingActivity extends AppCompatActivity {
 
         int from = orientationInfoList.size() < RSRP_LIST_MAX_SIZE ? 0 : orientationInfoList.size() - RSRP_LIST_MAX_SIZE;
         int to = orientationInfoList.size();
-        int[] pucchList = new int[RSRP_LIST_MAX_SIZE];
+//        int[] pucchList = new int[RSRP_LIST_MAX_SIZE];
         int[] puschList = new int[RSRP_LIST_MAX_SIZE];
 
         int rsrpIndex = RSRP_LIST_MAX_SIZE - 1;
         for (; to > from; to--, rsrpIndex--) {
-            pucchList[rsrpIndex] = orientationInfoList.get(to - 1).getStandardPucch();
-            puschList[rsrpIndex] = orientationInfoList.get(to - 1).getStandardPusch();
+//            pucchList[rsrpIndex] = orientationInfoList.get(to - 1).getStandardPucch();
+            int pusch = orientationInfoList.get(to - 1).getStandardPusch();
+            puschList[rsrpIndex] = pusch;
             options.set(rsrpIndex + 1,orientationInfoList.get(to - 1).timeStamp);
+            if(pusch > 25 && Global.LogInfo.phone != Global.Configuration.targetPhoneNum){
+                Global.LogInfo.phone = Global.Configuration.targetPhoneNum;
+                Global.LogInfo.findStartTime = new Date().toString();
+            } else if (pusch > 25) {
+                Global.LogInfo.targetSTMSI = Global.TARGET_STMSI;
+                Global.LogInfo.findEndTime = new Date().toString();
+            }
         }
         for (; to > from; to--, rsrpIndex--) {
-            pucchList[rsrpIndex] = 0;
+//            pucchList[rsrpIndex] = 0;
             puschList[rsrpIndex] = 0;
         }
         view.initData(puschList, options, "功率图");

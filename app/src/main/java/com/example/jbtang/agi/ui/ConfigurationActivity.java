@@ -167,7 +167,7 @@ public class ConfigurationActivity extends AppCompatActivity {
 
             String temDevice = devices.get(position).getName();
 
-            Log.d("device","device: "+temDevice+"position: " + position);
+            Log.d("device","device: "+temDevice+" position: " + position);
             holder.title.setText(temDevice);
             MyListener detailListener;
             detailListener = new MyListener(position);

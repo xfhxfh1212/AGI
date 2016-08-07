@@ -14,6 +14,8 @@ import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Parcelable;
 
+import com.example.jbtang.agi.external.CrashHandler.CrashHandler;
+
 public class MonitorApplication extends Application {
 
 
@@ -112,5 +114,7 @@ public class MonitorApplication extends Application {
     public void onCreate() {
         super.onCreate();
         mInstance = this;
+//        CrashHandler crashHandler = CrashHandler.getInstance();
+//        crashHandler.init(this);
     }
 }

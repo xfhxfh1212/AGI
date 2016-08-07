@@ -56,7 +56,7 @@ public class Global {
         }
     }
 
-    public static class Configuration{
+    public static class Configuration {
         public static String name;
         public static Status.TriggerType type;
         public static Status.TriggerSMSType smsType;
@@ -69,12 +69,24 @@ public class Global {
         public static int triggerTotalCount;
         public static String targetPhoneNum;
         public static String smsCenter;
-        private Configuration(){
+
+        private Configuration() {
         }
     }
 
     public static String TARGET_STMSI;
-    public static Map<String,String> filterStmsiMap = new HashMap<>();
+    public static Map<String, String> filterStmsiMap = new HashMap<>();
     public static Date sendTime;
 
+    public static class LogInfo {
+        public static String userName = "";
+        public static String startTime = "";
+        public static String endTime = "";
+        public static String longitude = "";
+        public static String latitude = "";
+        public static String phone = "";
+        public static String targetSTMSI = "";
+        public static String findStartTime = "";
+        public static String findEndTime = "";
+    }
 }

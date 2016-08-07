@@ -44,6 +44,7 @@ public class MonitorDevice extends Device {
     private boolean pingStart;
     private Timer timer;
 
+
     public Status.PingResult getPingStatus() {
         return pingStatus;
     }
@@ -81,7 +82,8 @@ public class MonitorDevice extends Device {
         this.pingStatus = Status.PingResult.FAILED;
         if(!pingStart) {
             pingStart = true;
-            Global.ThreadPool.cachedThreadPool.execute(new NetPing());
+            NetPing netPing = new NetPing();
+            Global.ThreadPool.cachedThreadPool.execute(netPing);
         }
     }
 
@@ -204,7 +206,7 @@ public class MonitorDevice extends Device {
     public void release() {
         try {
             disconnect();
-            pingStart = false;
+            this.pingStart = false;
         } catch (Exception e) {
             Log.e(TAG, String.format("Failed to release device[%s].", IP));
             e.printStackTrace();

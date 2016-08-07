@@ -11,10 +11,13 @@ import android.widget.Toast;
 import com.example.jbtang.agi.R;
 import com.example.jbtang.agi.core.CellInfo;
 import com.example.jbtang.agi.core.Global;
+import com.example.jbtang.agi.core.MsgSendHelper;
 import com.example.jbtang.agi.core.Status;
 import com.example.jbtang.agi.device.DeviceManager;
 import com.example.jbtang.agi.device.MonitorDevice;
 import com.example.jbtang.agi.messages.MessageDispatcher;
+import com.example.jbtang.agi.messages.ag2pc.MsgCRS_RSRPQI_INFO;
+import com.example.jbtang.agi.messages.ag2pc.MsgL1_PHY_COMMEAS_IND;
 import com.example.jbtang.agi.messages.ag2pc.MsgL2P_AG_CELL_CAPTURE_IND;
 import com.example.jbtang.agi.messages.ag2pc.MsgL2P_AG_UE_CAPTURE_IND;
 import com.example.jbtang.agi.messages.base.MsgTypes;
@@ -100,6 +103,11 @@ public class Interference {
                     break;
                 case MsgTypes.L2P_AG_CELL_CAPTURE_IND_MSG_TYPE:
                     mOuter.get().resolveCellCaptureMsg(globalMsg);
+                    break;
+                case MsgTypes.L1_PHY_COMMEAS_IND_MSG_TYPE:
+                    mOuter.get().resolvePhyCommeasIndMsg(globalMsg);
+                    Log.e(TAG, "L1_PHY_COMMEAS_IND_MSG_TYPE captured!!!!!!!!!!!!!!!!!!!!!!!");
+                    break;
                 default:
                     break;
             }
@@ -124,6 +132,7 @@ public class Interference {
             if (device.getCellInfo() != null) {
                 timerMap.put(device.getName(), new Timer());
             }
+            device.setStartAgain(false);
         }
         for (Map.Entry<String, Timer> entry : timerMap.entrySet()) {
             entry.getValue().schedule(new MyTimerTask(entry.getKey()), 15000);
@@ -158,6 +167,21 @@ public class Interference {
         MonitorDevice temDevice = DeviceManager.getInstance().getDevice(deviceName);
         if (temDevice == null)
             return;
+        if(!temDevice.isStartAgain()){
+            temDevice.startMonitor(Status.Service.FINDSTMIS);
+            temDevice.setStartAgain(true);
+            timerMap.get(deviceName).cancel();
+            timerMap.remove(deviceName);
+            timerMap.put(deviceName, new Timer());
+            timerMap.get(deviceName).schedule(new MyTimerTask(deviceName), 15000);
+            currentActivity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(currentActivity,  String.format("%s下行同步丢失，再次同步中...", deviceName), Toast.LENGTH_LONG).show();
+                }
+            });
+            return;
+        }
         temDevice.reboot();
         Log.e(TAG, "Device Status After Reboot" + temDevice.getStatus());
         timerMap.get(deviceName).cancel();
@@ -206,7 +230,8 @@ public class Interference {
         MsgL2P_AG_CELL_CAPTURE_IND msg = new MsgL2P_AG_CELL_CAPTURE_IND(globalMsg.getBytes());
         Status.DeviceWorkingStatus status = msg.getMu16Rsrp() == 0 ? Status.DeviceWorkingStatus.ABNORMAL : Status.DeviceWorkingStatus.NORMAL;
         Float rsrp = msg.getMu16Rsrp() * 1.0F;
-        MonitorDevice monitorDevice = DeviceManager.getInstance().getDevice(globalMsg.getDeviceName());
+        final String deviceName = globalMsg.getDeviceName();
+        MonitorDevice monitorDevice = DeviceManager.getInstance().getDevice(deviceName);
         if (monitorDevice == null)
             return;
         monitorDevice.setWorkingStatus(status);
@@ -216,6 +241,21 @@ public class Interference {
         if (timerMap.get(monitorDevice.getName()) != null)
             timerMap.get(monitorDevice.getName()).cancel();
         if (status == Status.DeviceWorkingStatus.ABNORMAL) {
+            if(!monitorDevice.isStartAgain()){
+                monitorDevice.startMonitor(Status.Service.FINDSTMIS);
+                monitorDevice.setStartAgain(true);
+                timerMap.get(deviceName).cancel();
+                timerMap.remove(monitorDevice.getName());
+                timerMap.put(deviceName, new Timer());
+                timerMap.get(deviceName).schedule(new MyTimerTask(deviceName), 15000);
+                currentActivity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(currentActivity,  String.format("%s下行同步丢失，再次同步中...", deviceName), Toast.LENGTH_LONG).show();
+                    }
+                });
+                return;
+            }
             timerMap.remove(monitorDevice.getName());
             if (timerMap.isEmpty()) {
                 trigger.stop();
@@ -223,6 +263,8 @@ public class Interference {
             } else {
                 Toast.makeText(currentActivity, String.format("%d小区信号过弱！", msg.getMu16PCI()), Toast.LENGTH_LONG).show();
             }
+        } else {
+            monitorDevice.setStartAgain(false);
         }
     }
 
@@ -300,7 +342,23 @@ public class Interference {
             e.printStackTrace();
         }
     }
+    private void resolvePhyCommeasIndMsg(Global.GlobalMsg globalMsg) {
+        /*if (!needToCount) {
+            return;
+        }*/
 
+        MsgL1_PHY_COMMEAS_IND msg = new MsgL1_PHY_COMMEAS_IND(globalMsg.getBytes());
+        if (isCRSChType(msg.getMstL1PHYComentIndHeader().getMu32MeasSelect())) {
+            MsgCRS_RSRPQI_INFO crs_rsrpqi_info = new MsgCRS_RSRPQI_INFO(
+                    MsgSendHelper.getSubByteArray(globalMsg.getBytes(), MsgL1_PHY_COMMEAS_IND.byteArrayLen, MsgCRS_RSRPQI_INFO.byteArrayLen));
+            if (globalMsg.getDeviceName() != null) {
+                DeviceManager.getInstance().getDevice(globalMsg.getDeviceName()).getCellInfo().rsrp = crs_rsrpqi_info.getMstCrs0RsrpqiInfo().getMs16CRS_RP() * 0.125F;
+            }
+        }
+    }
+    private boolean isCRSChType(long type) {
+        return (type & 0x2000) == 0x2000;
+    }
     private Set<Map.Entry<String, CountSortedInfo>> getSortedSTMSI() {
         Set<Map.Entry<String, CountSortedInfo>> sortedSTMSI = new TreeSet<>(
                 new Comparator<Map.Entry<String, CountSortedInfo>>() {

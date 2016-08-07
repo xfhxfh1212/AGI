@@ -17,6 +17,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.jbtang.agi.R;
+import com.example.jbtang.agi.core.Global;
 import com.example.jbtang.agi.dao.users.User;
 import com.example.jbtang.agi.dao.users.UserDBHelper;
 import com.example.jbtang.agi.dao.users.UserDBManager;
@@ -109,10 +110,13 @@ public class LoginFragment extends Fragment {
                             editor.putString("username", "");
                         }
                         editor.commit();
+                        Global.LogInfo.userName = username;
                         startActivity(new Intent(getActivity(), MainMenuActivity.class));
                         getActivity().finish();
+                        return;
                     }
                 }
+                Toast.makeText(getActivity(), "用户名或密码错误！", Toast.LENGTH_LONG).show();
             }
         });
         manageBtn.setOnClickListener(new View.OnClickListener(){
