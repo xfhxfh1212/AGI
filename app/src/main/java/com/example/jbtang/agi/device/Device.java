@@ -86,7 +86,7 @@ public class Device {
     }
 
     public boolean isConnected() {
-        return status != Status.DeviceStatus.DISCONNECTED;
+        return (status == Status.DeviceStatus.IDLE || status == Status.DeviceStatus.WORKING);
     }
 
     public boolean isWorking() {
@@ -124,10 +124,10 @@ public class Device {
             send(GetFrequentlyUsedMsg.getDeviceStateMsg);
         }
         Thread.sleep(100);
-        if(status != Status.DeviceStatus.DISCONNECTED){
+        if (status != Status.DeviceStatus.DISCONNECTED) {
             this.currentTime = new Date();
             this.receiveTime = new Date();
-            if(!checkStatusStart) {
+            if (!checkStatusStart) {
                 checkStatusStart = true;
                 Global.ThreadPool.cachedThreadPool.execute(new CheckStatusRunnable());
             }
@@ -152,10 +152,10 @@ public class Device {
             while (checkStatusStart) {
                 currentTime = new Date();
                 long time = (currentTime.getTime() - receiveTime.getTime()) / 1000;
-                Log.e(TAG,"time:" + String.valueOf(time));
-                if (time > 10) {
+                Log.e(TAG, "time:" + String.valueOf(time));
+                if (time > 7) {
                     status = Status.DeviceStatus.DISCONNECTING;
-                    if (time > 20) {
+                    if (time > 13) {
                         dispose();
                         return;
                     }
@@ -169,6 +169,7 @@ public class Device {
 
         }
     }
+
     public void send(byte[] bytes) {
         if (client != null) {
             Message msg = new Message();
@@ -201,7 +202,7 @@ public class Device {
         }
         Global.ThreadPool.cachedThreadPool.execute(new Runnable() {
             @Override
-            public void run(){
+            public void run() {
                 byte[] buffer = new byte[Message_RECEIVE_BUFFER_SIZE];
                 while (true) {
                     try {
@@ -244,7 +245,7 @@ public class Device {
             @Override
             public void run() {
                 byte[] buffer = new byte[Data_RECEIVE_BUFFER_SIZE];
-                while(true) {
+                while (true) {
                     try {
                         if (dataIn.read(buffer, 0, MsgHeader.byteArrayLen) == -1) {
                             continue;
@@ -304,60 +305,17 @@ public class Device {
                 break;
         }
     }
-    public void reboot()  {
-        Global.ThreadPool.cachedThreadPool.execute(new Runnable() {
-            @Override
-            public void run() {
-                checkStatusStart = false;
-                Connection conn = null;
-                Session session = null;
 
-                try {
-                    conn = new Connection(getIP());
-                    conn.connect();
-                    boolean isAuthenticated = conn.authenticateWithPassword(REBOOT_USERNAME, REBOOT_PASSWORD);
 
-                    if (!isAuthenticated) {
-                        Log.e(TAG, "Authentication failed.");
-                    }
 
-                    session = conn.openSession();
-                    session.execCommand(REBOOT_CMD);
-
-                    Log.e(TAG, "Here is some information about the remote host:");
-
-                    InputStream stdout = new StreamGobbler(session.getStdout());
-
-                    BufferedReader br = new BufferedReader(new InputStreamReader(stdout));
-
-                    while (true) {
-                        String line = br.readLine();
-                        if (line == null)
-                            break;
-                        Log.e(TAG, line);
-                    }
-                    //Thread.sleep(3000);
-                    //status = Status.DeviceStatus.DISCONNECTED;
-                    DeviceManager.getInstance().remove(getName());
-                    dispose();
-                    Log.i(TAG, "ExitCode: " + session.getExitStatus());
-                    session.close();
-                    conn.close();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                //status = Status.DeviceStatus.DISCONNECTED;
-                Log.e(TAG,"status after reboot"+status);
-            }
-        });
-    }
     public void dispose() {
         //closeReceiveThread();
         closeACKInputStream();
         closeDataInputStream();
         closeTCPClient();
-        status = Status.DeviceStatus.DISCONNECTED;
-        startAgain = false;
+        this.status = Status.DeviceStatus.DISCONNECTED;
+        this.startAgain = false;
+        this.checkStatusStart = false;
     }
 
     /*private void closeReceiveThread() {

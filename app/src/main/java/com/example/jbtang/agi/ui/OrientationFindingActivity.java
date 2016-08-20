@@ -82,7 +82,7 @@ public class OrientationFindingActivity extends AppCompatActivity {
     private TextView pciNumThree;
     private TextView pciNumFour;
     private MonitorHelper monitorHelper;
-    public static List<String> options =  Arrays.asList("", "", "", "", "", "");
+    public static List<String> options = Arrays.asList("", "", "", "", "", "");
     private BarChartView view;
     private TextToSpeech textToSpeech;
     private OrientationInfoManager orientationInfoManager;
@@ -104,7 +104,7 @@ public class OrientationFindingActivity extends AppCompatActivity {
         orientationInfoManager.clear();
         orientationInfoManager.add(orientationInfoList);
         orientationInfoManager.closeDB();
-        if(startToFind){
+        if (startToFind) {
             OrientationFinding.getInstance().stop();
             startToFind = false;
         }
@@ -113,7 +113,7 @@ public class OrientationFindingActivity extends AppCompatActivity {
         unregisterReceiver(receiver);
         monitorHelper.unbindservice(OrientationFindingActivity.this);
         textToSpeech.shutdown();
-        Log.e("Orientation","orientation is onDestory");
+        Log.e("Orientation", "orientation is onDestory");
         super.onDestroy();
     }
 
@@ -147,7 +147,7 @@ public class OrientationFindingActivity extends AppCompatActivity {
     private void init() {
         LayoutInflater inflater = getLayoutInflater();
         LinearLayout linearLayout = (LinearLayout) findViewById(R.id.orientation_find_layout_cell_status_bar);
-        LinearLayout cellStatusBar = (LinearLayout) inflater.inflate(R.layout.cell_status_bar,null).findViewById(R.id.cell_status_bar_linearlayout);
+        LinearLayout cellStatusBar = (LinearLayout) inflater.inflate(R.layout.cell_status_bar, null).findViewById(R.id.cell_status_bar_linearlayout);
         linearLayout.addView(cellStatusBar);
 
         currentPCi = (TextView) findViewById(R.id.orientation_current_pci);
@@ -156,18 +156,18 @@ public class OrientationFindingActivity extends AppCompatActivity {
         triggerTypeRG = (RadioGroup) findViewById(R.id.orientation_find_trigger_type);
         startButton = (Button) findViewById(R.id.orientation_find_start);
         stopButton = (Button) findViewById(R.id.orientation_find_stop);
-        cellConfirmColorOne = (TextView)findViewById(R.id.cell_status_bar_confirm_background_one);
-        cellConfirmColorTwo = (TextView)findViewById(R.id.cell_status_bar_confirm_background_two);
-        cellConfirmColorThree = (TextView)findViewById(R.id.cell_status_bar_confirm_background_three);
-        cellConfirmColorFour = (TextView)findViewById(R.id.cell_status_bar_confirm_background_four);
-        cellRsrpOne = (TextView)findViewById(R.id.cell_status_bar_rsrp_one);
-        cellRsrpTwo = (TextView)findViewById(R.id.cell_status_bar_rsrp_two);
-        cellRsrpThree = (TextView)findViewById(R.id.cell_status_bar_rsrp_three);
-        cellRsrpFour = (TextView)findViewById(R.id.cell_status_bar_rsrp_four);
-        pciNumOne = (TextView)findViewById(R.id.cell_status_bar_pci_num_one);
-        pciNumTwo = (TextView)findViewById(R.id.cell_status_bar_pci_num_two);
-        pciNumThree = (TextView)findViewById(R.id.cell_status_bar_pci_num_three);
-        pciNumFour = (TextView)findViewById(R.id.cell_status_bar_pci_num_four);
+        cellConfirmColorOne = (TextView) findViewById(R.id.cell_status_bar_confirm_background_one);
+        cellConfirmColorTwo = (TextView) findViewById(R.id.cell_status_bar_confirm_background_two);
+        cellConfirmColorThree = (TextView) findViewById(R.id.cell_status_bar_confirm_background_three);
+        cellConfirmColorFour = (TextView) findViewById(R.id.cell_status_bar_confirm_background_four);
+        cellRsrpOne = (TextView) findViewById(R.id.cell_status_bar_rsrp_one);
+        cellRsrpTwo = (TextView) findViewById(R.id.cell_status_bar_rsrp_two);
+        cellRsrpThree = (TextView) findViewById(R.id.cell_status_bar_rsrp_three);
+        cellRsrpFour = (TextView) findViewById(R.id.cell_status_bar_rsrp_four);
+        pciNumOne = (TextView) findViewById(R.id.cell_status_bar_pci_num_one);
+        pciNumTwo = (TextView) findViewById(R.id.cell_status_bar_pci_num_two);
+        pciNumThree = (TextView) findViewById(R.id.cell_status_bar_pci_num_three);
+        pciNumFour = (TextView) findViewById(R.id.cell_status_bar_pci_num_four);
 
         orientationInfoManager = new OrientationInfoManager(this);
         orientationInfoList = getOrientationInfoList();
@@ -189,12 +189,12 @@ public class OrientationFindingActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
 
-                if(textToSpeech != null && !textToSpeech.isSpeaking()) {
+                if (textToSpeech != null && !textToSpeech.isSpeaking()) {
                     textToSpeech.speak("开始侧向", TextToSpeech.QUEUE_FLUSH, null);
                 }
-                if(startToFind || DeviceManager.getInstance().getDevices().size() == 0 || Global.TARGET_STMSI == null)
+                if (startToFind || DeviceManager.getInstance().getDevices().size() == 0 || Global.TARGET_STMSI == null)
                     return;
-                if(triggerTypeRG.getCheckedRadioButtonId() == R.id.orientation_find_trigger_continue) {
+                if (triggerTypeRG.getCheckedRadioButtonId() == R.id.orientation_find_trigger_continue) {
                     Global.Configuration.triggerInterval = 4;//连续触发间隔
                     Global.Configuration.silenceCheckTimer = 0;
                 } else {
@@ -204,8 +204,8 @@ public class OrientationFindingActivity extends AppCompatActivity {
                 OrientationFinding.getInstance().start(OrientationFindingActivity.this);
                 startToFind = true;
                 orientationInfoList.clear();
-                for(int i = 0; i < RSRP_LIST_MAX_SIZE+1; i++) {
-                    options.set(i,"");
+                for (int i = 0; i < RSRP_LIST_MAX_SIZE + 1; i++) {
+                    options.set(i, "");
                 }
                 refreshBarChart();
                 startButton.setEnabled(false);
@@ -215,7 +215,7 @@ public class OrientationFindingActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 OrientationFinding.getInstance().stop();
-                if(startToFind) {
+                if (startToFind) {
                     startToFind = false;
                     //Toast.makeText(OrientationFindingActivity.this,"设备停止中，请稍后！",Toast.LENGTH_LONG).show();
                     new Timer().schedule(new TimerTask() {
@@ -259,11 +259,11 @@ public class OrientationFindingActivity extends AppCompatActivity {
         textToSpeech = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
             @Override
             public void onInit(int status) {
-                if(status == TextToSpeech.SUCCESS){
+                if (status == TextToSpeech.SUCCESS) {
                     int result = textToSpeech.setLanguage(Locale.CHINA);
-                    if(result == TextToSpeech.LANG_NOT_SUPPORTED
-                            || result == TextToSpeech.LANG_MISSING_DATA){
-                        Toast.makeText(OrientationFindingActivity.this,"数据丢失或不支持",Toast.LENGTH_LONG).show();
+                    if (result == TextToSpeech.LANG_NOT_SUPPORTED
+                            || result == TextToSpeech.LANG_MISSING_DATA) {
+                        Toast.makeText(OrientationFindingActivity.this, "数据丢失或不支持", Toast.LENGTH_LONG).show();
                     } else {
                         textToSpeech.setPitch(1.5f);
                     }
@@ -271,10 +271,11 @@ public class OrientationFindingActivity extends AppCompatActivity {
             }
         });
     }
-    private List<OrientationFinding.OrientationInfo> getOrientationInfoList(){
+
+    private List<OrientationFinding.OrientationInfo> getOrientationInfoList() {
         List<OrientationInfoDAO> orientationInfoDAOList = orientationInfoManager.listDB();
         List<OrientationFinding.OrientationInfo> orientationInfoDBList = new ArrayList<>();
-        for(OrientationInfoDAO dao : orientationInfoDAOList) {
+        for (OrientationInfoDAO dao : orientationInfoDAOList) {
             OrientationFinding.OrientationInfo orientationInfo = new OrientationFinding.OrientationInfo();
             //orientationInfo.PUSCHRsrp = dao.pusch.equals(Double.NaN)? Double.NaN:Double.parseDouble(dao.pusch);
             orientationInfo.PUSCHRsrp = Double.parseDouble(dao.pusch);
@@ -285,12 +286,13 @@ public class OrientationFindingActivity extends AppCompatActivity {
         }
         return orientationInfoDBList;
     }
+
     private void refresh(String type) {
-        final String  temtype = type;
+        final String temtype = type;
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                if(temtype.equals("all")) {
+                if (temtype.equals("all")) {
                     ((MyAdapter) resultListView.getAdapter()).notifyDataSetChanged();
                     resultListView.setSelection(orientationInfoList.size() - 1);
                     refreshBarChart();
@@ -314,14 +316,15 @@ public class OrientationFindingActivity extends AppCompatActivity {
 //            pucchList[rsrpIndex] = orientationInfoList.get(to - 1).getStandardPucch();
             int pusch = orientationInfoList.get(to - 1).getStandardPusch();
             puschList[rsrpIndex] = pusch;
-            options.set(rsrpIndex + 1,orientationInfoList.get(to - 1).timeStamp);
-            if(pusch > 25 && Global.LogInfo.phone != Global.Configuration.targetPhoneNum){
+            options.set(rsrpIndex + 1, orientationInfoList.get(to - 1).timeStamp);
+            if (pusch > 25 && !Global.Configuration.targetPhoneNum.equals(Global.LogInfo.phone)) {
                 Global.LogInfo.phone = Global.Configuration.targetPhoneNum;
                 Global.LogInfo.findStartTime = new Date().toString();
             } else if (pusch > 25) {
                 Global.LogInfo.targetSTMSI = Global.TARGET_STMSI;
                 Global.LogInfo.findEndTime = new Date().toString();
             }
+            Log.e(TAG, "LogInfo.phone" + Global.LogInfo.phone + ",LogInfo.targetSTMSI" + Global.LogInfo.targetSTMSI + ",LogInfo.findStartTime" + Global.LogInfo.findStartTime + ",LogInfo.findEndTime" + Global.LogInfo.findEndTime);
         }
         for (; to > from; to--, rsrpIndex--) {
 //            pucchList[rsrpIndex] = 0;
@@ -329,23 +332,24 @@ public class OrientationFindingActivity extends AppCompatActivity {
         }
         view.initData(puschList, options, "功率图");
         resultGraphLayout.addView(view.getBarChartView());
-        if(textToSpeech != null && !textToSpeech.isSpeaking()) {
+        if (textToSpeech != null && !textToSpeech.isSpeaking()) {
             textToSpeech.speak(String.valueOf(puschList[RSRP_LIST_MAX_SIZE - 1]), TextToSpeech.QUEUE_FLUSH, null);
         }
     }
-    private void refreshCellStatusBar(){
+
+    private void refreshCellStatusBar() {
         int position = 0;
         for (MonitorDevice device : DeviceManager.getInstance().getAllDevices()) {
-            if(device.getStatus() != Status.DeviceStatus.DISCONNECTED ) {
-                if(device.getIsReadyToMonitor()) {
+            if (device.getStatus() != Status.DeviceStatus.DISCONNECTED) {
+                if (device.getIsReadyToMonitor()) {
                     if (device.getWorkingStatus() == Status.DeviceWorkingStatus.NORMAL) {
                         String rsrp = String.format("%.2f", device.getCellInfo().rsrp);
                         setCellStatusBar(position, Color.GREEN, rsrp, device.getCellInfo().pci + "");
-                    } else if(device.getWorkingStatus() != Status.DeviceWorkingStatus.NORMAL){
-                        setCellStatusBar(position, Color.RED, "N/A", device.getCellInfo().pci + "");
+                    } else if (device.getWorkingStatus() != Status.DeviceWorkingStatus.NORMAL) {
+                        setCellStatusBar(position, Color.YELLOW, "N/A", device.getCellInfo().pci + "");
                     }
                 } else {
-                    setCellStatusBar(position, Color.YELLOW, "", "");
+                    setCellStatusBar(position, Color.RED, "", "");
                 }
             } else {
                 setCellStatusBar(position, getResources().getColor(R.color.default_color), "", "");
@@ -353,35 +357,38 @@ public class OrientationFindingActivity extends AppCompatActivity {
             position++;
         }
     }
-    private void setCellStatusBar(int position,int color,String text,String pci){
-        switch (position){
-            case 0:{
+
+    private void setCellStatusBar(int position, int color, String text, String pci) {
+        switch (position) {
+            case 0: {
                 cellConfirmColorOne.setBackgroundColor(color);
                 cellRsrpOne.setText(text);
                 pciNumOne.setText(pci);
                 break;
             }
-            case 1:{
+            case 1: {
                 cellConfirmColorTwo.setBackgroundColor(color);
                 cellRsrpTwo.setText(text);
                 pciNumTwo.setText(pci);
                 break;
             }
-            case 2:{
+            case 2: {
                 cellConfirmColorThree.setBackgroundColor(color);
                 cellRsrpThree.setText(text);
                 pciNumThree.setText(pci);
                 break;
             }
-            case 3:{
+            case 3: {
                 cellConfirmColorFour.setBackgroundColor(color);
                 cellRsrpFour.setText(text);
                 pciNumFour.setText(pci);
                 break;
             }
-            default:break;
+            default:
+                break;
         }
     }
+
     static class myHandler extends Handler {
         private final WeakReference<OrientationFindingActivity> mOuter;
 
@@ -391,13 +398,13 @@ public class OrientationFindingActivity extends AppCompatActivity {
 
         @Override
         public void handleMessage(Message msg) {
-            if(msg.what == 1 && msg.obj != null) {
+            if (msg.what == 1 && msg.obj != null) {
                 OrientationFinding.OrientationInfo info = (OrientationFinding.OrientationInfo) msg.obj;
                 //if(!Double.isNaN(info.PUSCHRsrp)) {
-                    mOuter.get().orientationInfoList.add(info);
-                    mOuter.get().refresh("all");
+                mOuter.get().orientationInfoList.add(info);
+                mOuter.get().refresh("all");
                 //}
-            }else if(msg.what == 2){
+            } else if (msg.what == 2) {
                 mOuter.get().refresh("");
             }
 
@@ -475,21 +482,21 @@ public class OrientationFindingActivity extends AppCompatActivity {
             if (intent.getAction().equals("")) {
                 return;
             }
-            if(intent.getAction().equals(MonitorApplication.BROAD_TO_MAIN_ACTIVITY)){
+            if (intent.getAction().equals(MonitorApplication.BROAD_TO_MAIN_ACTIVITY)) {
                 refreshServerCell(intent);
-            }
-            else if(intent.getAction().equals(MonitorApplication.BROAD_FROM_MAIN_MENU_DEVICE)){
+            } else if (intent.getAction().equals(MonitorApplication.BROAD_FROM_MAIN_MENU_DEVICE)) {
                 //refreshDeviceStatus(intent);
             }
         }
     }
-    private void refreshServerCell(Intent intent){
+
+    private void refreshServerCell(Intent intent) {
         int flag = intent.getFlags();
         Bundle bundle = intent.getExtras();
-        switch (flag){
+        switch (flag) {
             case MonitorApplication.SERVER_CELL_FLAG:
                 LTEServCellMessage myServCellMessage = bundle.getParcelable("msg");
-                if(myServCellMessage != null){
+                if (myServCellMessage != null) {
                     currentPCi.setText(String.valueOf(myServCellMessage.getPCI()));
                 }
                 break;
@@ -497,22 +504,23 @@ public class OrientationFindingActivity extends AppCompatActivity {
                 break;
         }
     }
-    private void refreshDeviceStatus(Intent intent){
+
+    private void refreshDeviceStatus(Intent intent) {
         Bundle bundle = intent.getExtras();
         int colorOne = bundle.getInt("colorOne");
         int colorTwo = bundle.getInt("colorTwo");
         int colorThree = bundle.getInt("colorThree");
         int colorFour = bundle.getInt("colorFour");
-        if(colorOne == Color.RED){
+        if (colorOne == Color.RED) {
             cellConfirmColorOne.setBackgroundColor(Color.RED);
         }
-        if(colorTwo == Color.RED){
+        if (colorTwo == Color.RED) {
             cellConfirmColorTwo.setBackgroundColor(Color.RED);
         }
-        if(colorThree == Color.RED){
+        if (colorThree == Color.RED) {
             cellConfirmColorThree.setBackgroundColor(Color.RED);
         }
-        if(colorFour == Color.RED){
+        if (colorFour == Color.RED) {
             cellConfirmColorFour.setBackgroundColor(Color.RED);
         }
     }

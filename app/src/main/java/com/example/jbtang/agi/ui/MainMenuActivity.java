@@ -198,11 +198,15 @@ public class MainMenuActivity extends AppCompatActivity {
         } else if (providers.contains(LocationManager.NETWORK_PROVIDER)) {
             //如果是Network
             locationProvider = LocationManager.NETWORK_PROVIDER;
+        } else if(providers.contains(LocationManager.PASSIVE_PROVIDER)){
+            locationProvider = LocationManager.PASSIVE_PROVIDER;
         } else {
             Toast.makeText(this, "没有可用的位置提供器", Toast.LENGTH_SHORT).show();
             return;
         }
+        Log.e(TAG,"locationProvider:"+locationProvider);
         //获取Location
+        locationManager.requestLocationUpdates(locationProvider, 1000, 0, locationListener);
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             // TODO: Consider calling
             //    ActivityCompat#requestPermissions
@@ -214,13 +218,16 @@ public class MainMenuActivity extends AppCompatActivity {
             return;
         }
         Location location = locationManager.getLastKnownLocation(locationProvider);
-        if(location != null) {
+        if (location != null) {
             Global.LogInfo.longitude = location.getLongitude() + "";
             Global.LogInfo.latitude = location.getLatitude() + "";
         }
-        locationManager.requestLocationUpdates(locationProvider, 3000, 1, locationListener);
+        Toast.makeText(this, "经度："+Global.LogInfo.longitude+"纬度："+Global.LogInfo.latitude,Toast.LENGTH_SHORT).show();
+        Log.e(TAG, "Global.LogInfo.longitude" + Global.LogInfo.longitude + ",Global.LogInfo.latitude" + Global.LogInfo.latitude);
+
     }
-    LocationListener locationListener =  new LocationListener() {
+
+    LocationListener locationListener = new LocationListener() {
 
         @Override
         public void onStatusChanged(String provider, int status, Bundle arg2) {
@@ -242,9 +249,11 @@ public class MainMenuActivity extends AppCompatActivity {
             //如果位置发生变化,重新显示
             Global.LogInfo.longitude = location.getLongitude() + "";
             Global.LogInfo.latitude = location.getLatitude() + "";
-
+            Toast.makeText(getApplicationContext(), "经度："+Global.LogInfo.longitude+"纬度："+Global.LogInfo.latitude,Toast.LENGTH_SHORT).show();
+            Log.e(TAG, "Global.LogInfo.longitude" + Global.LogInfo.longitude + ",Global.LogInfo.latitude" + Global.LogInfo.latitude);
         }
     };
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -299,6 +308,7 @@ public class MainMenuActivity extends AppCompatActivity {
 
         logInfoManager.addLogInfo();
         logInfoManager.closeDB();
+
         super.onDestroy();
     }
 
@@ -411,6 +421,7 @@ public class MainMenuActivity extends AppCompatActivity {
             for (MonitorDevice device : DeviceManager.getInstance().getAllDevices()) {
                 try {
                     device.disconnect();
+                    Thread.sleep(200);
                     DeviceManager.getInstance().remove(device.getName());
                 } catch (Exception e) {
                 }
@@ -494,7 +505,7 @@ public class MainMenuActivity extends AppCompatActivity {
                         MonitorDevice device = DeviceManager.getInstance().getDevice(name);
                         if (device != null) {
                             device.reboot();
-                            //DeviceManager.getInstance().remove(name);
+                            DeviceManager.getInstance().remove(name);
                             Toast.makeText(MainMenuActivity.this, "设备重启中!", Toast.LENGTH_SHORT).show();
                         }
                         break;

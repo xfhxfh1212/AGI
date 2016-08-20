@@ -141,6 +141,7 @@ public class FindSTMSI {
                 timerMap.put(device.getName(), new Timer());
             }
             device.setStartAgain(false);
+            device.setWorkingStatus(Status.DeviceWorkingStatus.ABNORMAL);
         }
         for (Map.Entry<String, Timer> entry : timerMap.entrySet()) {
             entry.getValue().schedule(new MyTimerTask(entry.getKey()), 15000);
@@ -185,12 +186,13 @@ public class FindSTMSI {
             currentActivity.runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    Toast.makeText(currentActivity,  String.format("%s下行同步丢失，再次同步中...", deviceName), Toast.LENGTH_LONG).show();
+                    Toast.makeText(currentActivity,  String.format("%s下行同步丢失，二次同步中...", deviceName), Toast.LENGTH_LONG).show();
                 }
             });
             return;
         }
         temDevice.reboot();
+        DeviceManager.getInstance().remove(temDevice.getName());
         Log.e(TAG, "Device Status After Reboot" + temDevice.getStatus());
         timerMap.get(deviceName).cancel();
         timerMap.remove(deviceName);
@@ -238,7 +240,7 @@ public class FindSTMSI {
     private void resolveCellCaptureMsg(Global.GlobalMsg globalMsg) {
 
         MsgL2P_AG_CELL_CAPTURE_IND msg = new MsgL2P_AG_CELL_CAPTURE_IND(globalMsg.getBytes());
-        Status.DeviceWorkingStatus status = msg.getMu16Rsrp() == 0 ? Status.DeviceWorkingStatus.ABNORMAL : Status.DeviceWorkingStatus.NORMAL;
+        Status.DeviceWorkingStatus status = msg.getMu16TAC() == 0 ? Status.DeviceWorkingStatus.ABNORMAL : Status.DeviceWorkingStatus.NORMAL;
         Float rsrp = msg.getMu16Rsrp() * 1.0F;
         final String deviceName = globalMsg.getDeviceName();
         MonitorDevice monitorDevice = DeviceManager.getInstance().getDevice(deviceName);
@@ -255,7 +257,7 @@ public class FindSTMSI {
                 monitorDevice.startMonitor(Status.Service.FINDSTMIS);
                 monitorDevice.setStartAgain(true);
                 timerMap.get(deviceName).cancel();
-                timerMap.remove(monitorDevice.getName());
+                timerMap.remove(deviceName);
                 timerMap.put(deviceName, new Timer());
                 timerMap.get(deviceName).schedule(new MyTimerTask(deviceName), 15000);
                 currentActivity.runOnUiThread(new Runnable() {
@@ -266,7 +268,7 @@ public class FindSTMSI {
                 });
                 return;
             }
-            timerMap.remove(monitorDevice.getName());
+            timerMap.remove(deviceName);
             if (timerMap.isEmpty()) {
                 trigger.stop();
                 Toast.makeText(currentActivity, "搜索已停止！", Toast.LENGTH_LONG).show();

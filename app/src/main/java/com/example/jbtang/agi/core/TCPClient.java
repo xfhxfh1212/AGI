@@ -106,6 +106,7 @@ public class TCPClient implements Runnable {
 
     private void sendMsgToNetwork() {
         Looper.prepare();
+
         inHandler = new myHandler(this);
         Log.e(TAG,"inHandler is creating" + inHandler.toString());
         Looper.loop();

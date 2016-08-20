@@ -295,10 +295,10 @@ public class FindSTMSIActivity extends AppCompatActivity {
                                 String rsrp = String.format("%.2f", device.getCellInfo().rsrp);
                                 setCellStatusBar(position, Color.GREEN, rsrp, device.getCellInfo().pci + "");
                             } else if(device.getWorkingStatus() != Status.DeviceWorkingStatus.NORMAL){
-                                setCellStatusBar(position, Color.RED, "N/A", device.getCellInfo().pci + "");
+                                setCellStatusBar(position, Color.YELLOW, "N/A", device.getCellInfo().pci + "");
                             }
                         } else {
-                            setCellStatusBar(position, Color.YELLOW, "", "");
+                            setCellStatusBar(position, Color.RED, "", "");
                         }
                     } else {
                         setCellStatusBar(position, getResources().getColor(R.color.default_color), "", "");

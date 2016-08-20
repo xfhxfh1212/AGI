@@ -49,6 +49,10 @@ public class MonitorDevice extends Device {
         return pingStatus;
     }
 
+    public void setPingStatus(Status.PingResult pingStatus) {
+        this.pingStatus = pingStatus;
+    }
+
     public Status.DeviceWorkingStatus getWorkingStatus() {
         return workingStatus;
     }
@@ -67,7 +71,7 @@ public class MonitorDevice extends Device {
 
     public void setCellInfo(CellInfo cellInfo) {
         this.cellInfo = cellInfo;
-        if(cellInfo == null) {
+        if (cellInfo == null) {
             this.isReadyToMonitor = false;
         } else {
             this.isReadyToMonitor = true;
@@ -80,7 +84,7 @@ public class MonitorDevice extends Device {
         this.type = type;
         this.workingStatus = Status.DeviceWorkingStatus.ABNORMAL;
         this.pingStatus = Status.PingResult.FAILED;
-        if(!pingStart) {
+        if (!pingStart) {
             pingStart = true;
             NetPing netPing = new NetPing();
             Global.ThreadPool.cachedThreadPool.execute(netPing);
@@ -152,9 +156,11 @@ public class MonitorDevice extends Device {
         }
         send(GetFrequentlyUsedMsg.protocalTraceRelMsg);
     }
-    public boolean getIsReadyToMonitor(){
+
+    public boolean getIsReadyToMonitor() {
         return this.isReadyToMonitor;
     }
+
     public void setIsReadyToMonitor(boolean isReadyToMonitor) {
         this.isReadyToMonitor = isReadyToMonitor;
     }
@@ -164,8 +170,10 @@ public class MonitorDevice extends Device {
         Process p;
         try {
             p = Runtime.getRuntime().exec("ping -c 1 -w 1000 " + IP);
-            int status = p.waitFor();
             InputStream input = p.getInputStream();
+//            new ProcessClearStream(input,"INFO").start();
+//            new ProcessClearStream(p.getErrorStream(),"ERROR").start();
+            int status = p.waitFor();
             BufferedReader in = new BufferedReader(new InputStreamReader(input));
             StringBuilder builder = new StringBuilder();
             String line;
@@ -187,6 +195,28 @@ public class MonitorDevice extends Device {
         }
     }
 
+//    public class ProcessClearStream extends Thread {
+//        private InputStream inputStream;
+//        private String type;
+//        ProcessClearStream(InputStream inputStream, String type) {
+//            this.inputStream = inputStream;
+//            this.type = type;
+//        }
+//        public void run() {
+//            try {
+//                InputStreamReader inputStreamReader = new InputStreamReader(
+//                        inputStream);
+//                BufferedReader br = new BufferedReader(inputStreamReader);// 打印信息
+//                String line = null;
+//                while ((line = br.readLine()) != null) {
+//                    System.out.println(type + ">" + line);
+//                }// 不打印信息//
+//                while (br.readLine() != null) ;
+//            } catch (IOException ioe) {
+//                ioe.printStackTrace();
+//            }
+//        }
+//    }
     private class NetPing implements Runnable {
         @Override
         public void run() {
@@ -201,6 +231,55 @@ public class MonitorDevice extends Device {
         }
     }
 
+    public void reboot() {
+        Global.ThreadPool.cachedThreadPool.execute(new Runnable() {
+            @Override
+            public void run() {
+                checkStatusStart = false;
+                Connection conn = null;
+                Session session = null;
+
+                try {
+                    conn = new Connection(getIP());
+                    conn.connect();
+                    boolean isAuthenticated = conn.authenticateWithPassword(REBOOT_USERNAME, REBOOT_PASSWORD);
+
+                    if (!isAuthenticated) {
+                        Log.e(TAG, "Authentication failed.");
+                    }
+
+                    session = conn.openSession();
+                    session.execCommand(REBOOT_CMD);
+
+                    Log.e(TAG, "Here is some information about the remote host:");
+
+                    InputStream stdout = new StreamGobbler(session.getStdout());
+
+                    BufferedReader br = new BufferedReader(new InputStreamReader(stdout));
+
+                    while (true) {
+                        String line = br.readLine();
+                        if (line == null)
+                            break;
+                        Log.e(TAG, line);
+                    }
+                    //Thread.sleep(3000);
+                    //status = Status.DeviceStatus.DISCONNECTED;
+
+                    dispose();
+                    Log.i(TAG, "ExitCode: " + session.getExitStatus());
+                    session.close();
+                    conn.close();
+                    Thread.sleep(3000);
+                    pingStatus = Status.PingResult.FAILED;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                //status = Status.DeviceStatus.DISCONNECTED;
+                Log.e(TAG, "status after reboot" + status);
+            }
+        });
+    }
 
 
     public void release() {
@@ -219,19 +298,21 @@ public class MonitorDevice extends Device {
         TimerTask timerTask = new TimerTask() {
             @Override
             public void run() {
-                Log.e(TAG,"重启设备");
+                Log.e(TAG, "重启设备");
                 reboot();
                 //cancleCheckCellCaoture();
             }
         };
-        timer.schedule(timerTask,10000);
-        Log.e(TAG,"开始计时");
+        timer.schedule(timerTask, 10000);
+        Log.e(TAG, "开始计时");
     }
+
     public void cancleCheckCellCaoture() {
-        if(timer != null) {
+        if (timer != null) {
             timer.cancel();
             timer = null;
-            Log.e(TAG,"计时取消");
+            Log.e(TAG, "计时取消");
         }
     }
+
 }

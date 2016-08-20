@@ -224,6 +224,7 @@ public class OrientationFinding {
                 cellRSRPMap.put(device.getName(), new ArrayList<Float>());
             }
             device.setStartAgain(false);
+            device.setWorkingStatus(Status.DeviceWorkingStatus.ABNORMAL);
         }
         for (Map.Entry<String, Timer> entry : timerMap.entrySet()) {
             entry.getValue().schedule(new MyTimerTask(entry.getKey()), 15000);
@@ -274,11 +275,12 @@ public class OrientationFinding {
             return;
         }
         temDevice.reboot();
+        DeviceManager.getInstance().remove(temDevice.getName());
         timerMap.get(deviceName).cancel();
         timerMap.remove(deviceName);
-        timerMap.get(deviceName).cancel();
-        timerMap.put(deviceName, new Timer());
-        timerMap.get(deviceName).schedule(new MyTimerTask(deviceName), 15000);
+//        timerMap.get(deviceName).cancel();
+//        timerMap.put(deviceName, new Timer());
+//        timerMap.get(deviceName).schedule(new MyTimerTask(deviceName), 15000);
         CellInfo cellInfo = temDevice.getCellInfo();
         String nextDeviceName = "";
         for (MonitorDevice device : DeviceManager.getInstance().getDevices()) {
@@ -364,7 +366,7 @@ public class OrientationFinding {
 
     private void resolveCellCaptureMsg(Global.GlobalMsg globalMsg) {
         MsgL2P_AG_CELL_CAPTURE_IND msg = new MsgL2P_AG_CELL_CAPTURE_IND(globalMsg.getBytes());
-        Status.DeviceWorkingStatus status = msg.getMu16Rsrp() == 0 ? Status.DeviceWorkingStatus.ABNORMAL : Status.DeviceWorkingStatus.NORMAL;
+        Status.DeviceWorkingStatus status = msg.getMu16TAC() == 0 ? Status.DeviceWorkingStatus.ABNORMAL : Status.DeviceWorkingStatus.NORMAL;
         Float rsrp = msg.getMu16Rsrp() * 1.0F;
         int pci = msg.getMu16PCI();
         final String deviceName = globalMsg.getDeviceName();

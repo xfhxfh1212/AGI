@@ -114,7 +114,7 @@ public class MonitorApplication extends Application {
     public void onCreate() {
         super.onCreate();
         mInstance = this;
-//        CrashHandler crashHandler = CrashHandler.getInstance();
-//        crashHandler.init(this);
+        CrashHandler crashHandler = CrashHandler.getInstance();
+        crashHandler.init(this);
     }
 }
